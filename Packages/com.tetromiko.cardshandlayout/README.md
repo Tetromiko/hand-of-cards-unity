@@ -25,7 +25,7 @@ Mathematical, responsive card hand layout engine for Unity UI (uGUI) with dynami
 3. Click the **`+`** button in the top-left corner and select **"Add package from git URL..."**.
 4. Paste the repository URL:
    ```text
-   https://github.com/Tetromiko/hand-of-cards.git?path=/Packages/com.tetromiko.cardshandlayout
+   https://github.com/Tetromiko/hand-of-cards-unity.git?path=Packages/com.tetromiko.cardshandlayout
    ```
 5. Click **Add**. Unity will download and import the package automatically.
 
@@ -34,7 +34,7 @@ Add the following dependency to your Unity project's `Packages/manifest.json`:
 ```json
 {
   "dependencies": {
-    "com.tetromiko.cardshandlayout": "https://github.com/Tetromiko/hand-of-cards.git?path=/Packages/com.tetromiko.cardshandlayout"
+    "com.tetromiko.cardshandlayout": "https://github.com/Tetromiko/hand-of-cards-unity.git?path=Packages/com.tetromiko.cardshandlayout"
   }
 }
 ```
