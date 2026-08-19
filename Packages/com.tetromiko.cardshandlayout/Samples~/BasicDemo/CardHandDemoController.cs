@@ -12,11 +12,20 @@ namespace Tetromiko.CardsHandLayout.Samples
         [SerializeField] private CardHandWebControlPanel controlPanel;
         [SerializeField] private CardHandLayoutOverlay layoutOverlay;
 
+        private static T FindAny<T>() where T : Object
+        {
+#if UNITY_2023_1_OR_NEWER
+            return Object.FindAnyObjectByType<T>();
+#else
+            return Object.FindObjectOfType<T>();
+#endif
+        }
+
         private void Awake()
         {
             if (handController == null)
             {
-                handController = FindObjectOfType<CardHandController>();
+                handController = FindAny<CardHandController>();
             }
 
             if (handController == null && Application.isPlaying)
@@ -31,12 +40,12 @@ namespace Tetromiko.CardsHandLayout.Samples
 
             if (handController == null)
             {
-                handController = FindObjectOfType<CardHandController>();
+                handController = FindAny<CardHandController>();
             }
 
             if (controlPanel == null)
             {
-                controlPanel = FindObjectOfType<CardHandWebControlPanel>();
+                controlPanel = FindAny<CardHandWebControlPanel>();
                 if (controlPanel != null && handController != null)
                 {
                     controlPanel.Initialize(handController);
@@ -64,7 +73,7 @@ namespace Tetromiko.CardsHandLayout.Samples
         public void BuildCompleteDemoUI()
         {
             // Find or create Canvas
-            Canvas canvas = FindObjectOfType<Canvas>();
+            Canvas canvas = FindAny<Canvas>();
             if (canvas == null)
             {
                 var canvasObj = new GameObject("DemoCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));

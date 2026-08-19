@@ -15,7 +15,11 @@ namespace Tetromiko.CardsHandLayout
             EventSystem es = EventSystem.current;
             if (es == null)
             {
+#if UNITY_2023_1_OR_NEWER
+                es = UnityEngine.Object.FindAnyObjectByType<EventSystem>();
+#else
                 es = UnityEngine.Object.FindObjectOfType<EventSystem>();
+#endif
             }
 
             if (es == null)

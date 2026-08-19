@@ -90,7 +90,14 @@ namespace Tetromiko.CardsHandLayout.Samples
 
         private void Awake()
         {
-            if (handController == null) handController = FindObjectOfType<CardHandController>();
+            if (handController == null)
+            {
+#if UNITY_2023_1_OR_NEWER
+                handController = UnityEngine.Object.FindAnyObjectByType<CardHandController>();
+#else
+                handController = UnityEngine.Object.FindObjectOfType<CardHandController>();
+#endif
+            }
         }
 
         private void Start()
@@ -317,7 +324,7 @@ namespace Tetromiko.CardsHandLayout.Samples
             telemetryStateText = CreateText(telRow.transform, "TelState", "Стан: Normal", 10, FontStyles.Bold, new Color(0.25f, 0.90f, 0.55f, 1f), TextAlignmentOptions.MidlineLeft);
             telemetryStateText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1.2f;
 
-            telemetryStepText = CreateText(telRow.transform, "TelStep", "step: 56px", 10, FontStyles.Normal, new Color(0.70f, 0.76f, 0.86f, 1f), TextAlignmentOptions.MidlineCenter);
+            telemetryStepText = CreateText(telRow.transform, "TelStep", "step: 56px", 10, FontStyles.Normal, new Color(0.70f, 0.76f, 0.86f, 1f), TextAlignmentOptions.Center);
             telemetryStepText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
             telemetryHStepText = CreateText(telRow.transform, "TelHStep", "h-step: 112px", 10, FontStyles.Bold, new Color(0.95f, 0.45f, 0.72f, 1f), TextAlignmentOptions.MidlineRight);

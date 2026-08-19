@@ -12,7 +12,11 @@ namespace Tetromiko.CardsHandLayout.Editor
         public static void CreateCardHandInHierarchy(MenuCommand menuCommand)
         {
             // Ensure Canvas exists
+#if UNITY_2023_1_OR_NEWER
+            Canvas canvas = Object.FindAnyObjectByType<Canvas>();
+#else
             Canvas canvas = Object.FindObjectOfType<Canvas>();
+#endif
             if (canvas == null)
             {
                 var canvasObj = new GameObject("Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
