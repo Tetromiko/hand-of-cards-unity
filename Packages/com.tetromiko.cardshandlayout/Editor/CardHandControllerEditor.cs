@@ -1,11 +1,58 @@
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 namespace Tetromiko.CardsHandLayout.Editor
 {
     [CustomEditor(typeof(CardHandController))]
     public class CardHandControllerEditor : UnityEditor.Editor
     {
+        [MenuItem("GameObject/UI/Cards Hand (Tetromiko)", false, 10)]
+        public static void CreateCardHandInHierarchy(MenuCommand menuCommand)
+        {
+            // Ensure Canvas exists
+            Canvas canvas = Object.FindObjectOfType<Canvas>();
+            if (canvas == null)
+            {
+                var canvasObj = new GameObject("Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+                canvas = canvasObj.GetComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                var scaler = canvasObj.GetComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920, 1080);
+                scaler.matchWidthOrHeight = 0.5f;
+                Undo.RegisterCreatedObjectUndo(canvasObj, "Create Canvas");
+            }
+
+            // Ensure EventSystem exists
+            if (Object.FindObjectOfType<EventSystem>() == null)
+            {
+                var esObj = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+                Undo.RegisterCreatedObjectUndo(esObj, "Create EventSystem");
+            }
+
+            // Create Card Hand Object
+            GameObject parent = menuCommand.context as GameObject;
+            if (parent == null || parent.GetComponentInParent<Canvas>() == null)
+            {
+                parent = canvas.gameObject;
+            }
+
+            var handObj = new GameObject("CardHand", typeof(RectTransform), typeof(CardHandController));
+            GameObjectUtility.SetParentAndAlign(handObj, parent);
+
+            var rt = handObj.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0f);
+            rt.anchorMax = new Vector2(0.5f, 0f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.anchoredPosition = new Vector2(0f, 100f);
+            rt.sizeDelta = new Vector2(900f, 260f);
+
+            Undo.RegisterCreatedObjectUndo(handObj, "Create CardHand");
+            Selection.activeObject = handObj;
+        }
+
         public override void OnInspectorGUI()
         {
             CardHandController controller = (CardHandController)target;

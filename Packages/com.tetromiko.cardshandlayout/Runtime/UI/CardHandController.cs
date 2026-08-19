@@ -56,9 +56,18 @@ namespace Tetromiko.CardsHandLayout
 
         private void Start()
         {
+            EnsureEventSystem();
             if (Application.isPlaying && populateDefaultCardsOnStart && cardViews.Count == 0)
             {
                 CreateDefaultCards(initialCardCount);
+            }
+        }
+
+        private void EnsureEventSystem()
+        {
+            if (Application.isPlaying && EventSystem.current == null)
+            {
+                var eventSystemObj = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
             }
         }
 
@@ -133,15 +142,44 @@ namespace Tetromiko.CardsHandLayout
 
             cardsData.Add(data);
 
-            if (cardPrefab != null && Container != null)
+            if (Container != null)
             {
-                var newCardView = Instantiate(cardPrefab, Container);
-                newCardView.RectTransform.sizeDelta = new Vector2(settings.cardWidth, settings.cardHeight);
-                newCardView.Initialize(data, this, cardViews.Count);
-                cardViews.Add(newCardView);
+                CardView newCardView = null;
+                if (cardPrefab != null)
+                {
+                    newCardView = Instantiate(cardPrefab, Container);
+                }
+                else
+                {
+                    newCardView = CreateProceduralCardView(Container);
+                }
+
+                if (newCardView != null)
+                {
+                    newCardView.RectTransform.sizeDelta = new Vector2(settings.cardWidth, settings.cardHeight);
+                    newCardView.Initialize(data, this, cardViews.Count);
+                    cardViews.Add(newCardView);
+                }
             }
 
             onHandUpdated?.Invoke();
+        }
+
+        private CardView CreateProceduralCardView(Transform parent)
+        {
+            var cardObj = new GameObject("ProceduralCard", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CardView));
+            cardObj.transform.SetParent(parent, false);
+
+            var rt = cardObj.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(settings.cardWidth, settings.cardHeight);
+
+            var img = cardObj.GetComponent<Image>();
+            img.color = new Color(0.98f, 0.98f, 1f, 1f);
+
+            var cardView = cardObj.GetComponent<CardView>();
+            cardView.SetupProceduralHierarchy();
+
+            return cardView;
         }
 
         public void RemoveCard(int index)
