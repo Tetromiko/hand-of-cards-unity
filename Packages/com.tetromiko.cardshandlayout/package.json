@@ -1,0 +1,32 @@
+{
+  "name": "com.tetromiko.cardshandlayout",
+  "version": "1.0.0",
+  "displayName": "Cards Hand Layout Engine",
+  "description": "Mathematical layout engine for interactive, responsive card hands in Unity UI with dynamic cascade compression, hover space compensation, spring animation, and drag-and-drop reordering.",
+  "unity": "2021.3",
+  "documentationUrl": "https://github.com/Tetromiko/hand-of-cards#readme",
+  "changelogUrl": "https://github.com/Tetromiko/hand-of-cards/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/Tetromiko/hand-of-cards/blob/main/LICENSE",
+  "keywords": [
+    "cards",
+    "hand",
+    "layout",
+    "ui",
+    "ugui",
+    "reordering",
+    "drag-and-drop",
+    "card-game",
+    "deckbuilder"
+  ],
+  "author": {
+    "name": "Tetromiko",
+    "url": "https://github.com/Tetromiko"
+  },
+  "samples": [
+    {
+      "displayName": "Basic Card Hand Demo",
+      "description": "Interactive example demonstrating cards addition, removal, hover compensation, and drag-and-drop reordering.",
+      "path": "Samples~/BasicDemo"
+    }
+  ]
+}
