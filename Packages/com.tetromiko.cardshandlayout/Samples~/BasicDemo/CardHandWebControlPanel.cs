@@ -11,26 +11,25 @@ namespace Tetromiko.CardsHandLayout.Samples
         [Header("Controller Reference")]
         [SerializeField] private CardHandController handController;
 
-        [Header("Optional Icons (Leave empty to use standard text)")]
+        [Header("Optional Icons (Leave empty to use text labels)")]
         [SerializeField] private Sprite iconAdd;
         [SerializeField] private Sprite iconRemove;
         [SerializeField] private Sprite iconReset;
         [SerializeField] private Sprite iconMinimize;
         [SerializeField] private Sprite iconExpand;
 
-        // Runtime References
+        // UI References
         private RectTransform panelRt;
         private bool isMinimized = false;
         private GameObject contentRoot;
         private GameObject minimizedRoot;
 
-        // Header and Counter UI
+        // Header and Counter
         private TextMeshProUGUI headerCountText;
         private TextMeshProUGUI miniCountText;
         private TextMeshProUGUI countText;
         private Button minButton;
         private TextMeshProUGUI minButtonText;
-        private Image minButtonIconImage;
 
         private Button addCardBtn;
         private Button removeCardBtn;
@@ -40,7 +39,7 @@ namespace Tetromiko.CardsHandLayout.Samples
         private Button miniRemoveCardBtn;
         private Button miniResetHandBtn;
 
-        // Sliders & Number Input Pairs
+        // Sliders & Input Fields
         private Slider cardWidthSlider;
         private TMP_InputField cardWidthInput;
         private Slider handWidthSlider;
@@ -56,7 +55,7 @@ namespace Tetromiko.CardsHandLayout.Samples
         private Slider hoverLiftSlider;
         private TMP_InputField hoverLiftInput;
 
-        // Layout Details toggle button
+        // Toggle Details
         private Button layoutDetailsBtn;
         private TextMeshProUGUI layoutDetailsBtnText;
 
@@ -66,6 +65,8 @@ namespace Tetromiko.CardsHandLayout.Samples
         private TextMeshProUGUI telemetryHStepText;
 
         private bool isUpdatingUI = false;
+
+        private const float PANEL_WIDTH = 340f;
 
         public void Initialize(CardHandController controller)
         {
@@ -105,7 +106,7 @@ namespace Tetromiko.CardsHandLayout.Samples
 
         public void RebuildPanelLayout()
         {
-            // Clear any old child objects
+            // Clean up existing children
             for (int i = transform.childCount - 1; i >= 0; i--)
             {
                 var child = transform.GetChild(i).gameObject;
@@ -113,7 +114,7 @@ namespace Tetromiko.CardsHandLayout.Samples
                 else DestroyImmediate(child);
             }
 
-            // 1. Root Panel (Standard Unity Panel)
+            // 1. Root Panel
             panelRt = GetComponent<RectTransform>();
             if (panelRt == null) panelRt = gameObject.AddComponent<RectTransform>();
 
@@ -121,17 +122,18 @@ namespace Tetromiko.CardsHandLayout.Samples
             panelRt.anchorMax = new Vector2(0f, 1f);
             panelRt.pivot = new Vector2(0f, 1f);
             panelRt.anchoredPosition = new Vector2(16f, -16f);
-            panelRt.sizeDelta = new Vector2(320f, 0f);
+            panelRt.sizeDelta = new Vector2(PANEL_WIDTH, 0f);
 
             var rootLayout = GetComponent<VerticalLayoutGroup>();
             if (rootLayout == null) rootLayout = gameObject.AddComponent<VerticalLayoutGroup>();
-            rootLayout.padding = new RectOffset(10, 10, 10, 10);
+            rootLayout.padding = new RectOffset(12, 12, 12, 12);
             rootLayout.spacing = 8f;
             rootLayout.childControlWidth = true;
             rootLayout.childControlHeight = true;
             rootLayout.childForceExpandWidth = true;
             rootLayout.childForceExpandHeight = false;
 
+            // ContentSizeFitter ONLY on the root panel
             var rootFitter = GetComponent<ContentSizeFitter>();
             if (rootFitter == null) rootFitter = gameObject.AddComponent<ContentSizeFitter>();
             rootFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
@@ -139,22 +141,22 @@ namespace Tetromiko.CardsHandLayout.Samples
 
             var bgImg = GetComponent<Image>();
             if (bgImg == null) bgImg = gameObject.AddComponent<Image>();
-            bgImg.color = new Color(0.18f, 0.18f, 0.20f, 0.95f);
+            bgImg.color = new Color(0.18f, 0.18f, 0.20f, 0.96f);
 
-            // 2. Header Bar
-            BuildHeaderBar();
+            // 2. Build Header
+            BuildHeader();
 
-            // 3. Minimized View Container
-            BuildMinimizedRoot();
+            // 3. Build Minimized Bar
+            BuildMinimizedBar();
 
-            // 4. Expanded Content Container
-            BuildExpandedContent();
+            // 4. Build Main Content
+            BuildMainContent();
         }
 
-        private void BuildHeaderBar()
+        private void BuildHeader()
         {
-            var headerObj = CreateLayoutObject("HeaderBar", transform, 28f);
-            var hGroup = headerObj.AddComponent<HorizontalLayoutGroup>();
+            var header = CreateRow("HeaderRow", transform, 28f);
+            var hGroup = header.AddComponent<HorizontalLayoutGroup>();
             hGroup.spacing = 8f;
             hGroup.childControlWidth = false;
             hGroup.childControlHeight = true;
@@ -163,39 +165,35 @@ namespace Tetromiko.CardsHandLayout.Samples
             hGroup.childAlignment = TextAnchor.MiddleLeft;
 
             // Title
-            var title = CreateText(headerObj.transform, "Title", "Панель керування", 13, FontStyles.Bold, Color.white, TextAlignmentOptions.MidlineLeft);
-            title.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            var title = CreateText(header.transform, "Title", "Панель керування", 13, FontStyles.Bold, Color.white, TextAlignmentOptions.MidlineLeft);
+            var titleLe = title.gameObject.AddComponent<LayoutElement>();
+            titleLe.preferredWidth = 200f;
 
             // Count Badge
-            var badgeObj = CreateLayoutObject("CountBadge", headerObj.transform, 22f);
-            badgeObj.AddComponent<Image>().color = new Color(0.28f, 0.28f, 0.32f, 1f);
-            var badgeLayout = badgeObj.AddComponent<HorizontalLayoutGroup>();
-            badgeLayout.padding = new RectOffset(6, 6, 2, 2);
-            badgeLayout.childControlWidth = true;
-            badgeLayout.childControlHeight = true;
-            badgeLayout.childForceExpandWidth = false;
-            badgeLayout.childForceExpandHeight = true;
-            badgeObj.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            var badge = new GameObject("CountBadge", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            badge.transform.SetParent(header.transform, false);
+            badge.GetComponent<Image>().color = new Color(0.28f, 0.28f, 0.32f, 1f);
+            var badgeLe = badge.AddComponent<LayoutElement>();
+            badgeLe.preferredWidth = 55f;
+            badgeLe.preferredHeight = 24f;
 
-            headerCountText = CreateText(badgeObj.transform, "Text", "5 шт.", 11, FontStyles.Normal, Color.white, TextAlignmentOptions.Center);
+            headerCountText = CreateText(badge.transform, "CountText", "5 шт.", 11, FontStyles.Normal, Color.white, TextAlignmentOptions.Center);
+            var bRt = headerCountText.GetComponent<RectTransform>();
+            bRt.anchorMin = Vector2.zero;
+            bRt.anchorMax = Vector2.one;
+            bRt.sizeDelta = Vector2.zero;
 
-            // Minimize / Expand Button
-            minButton = CreateButton(headerObj.transform, "MinButton", "_", new Vector2(24f, 24f), new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 12f);
+            // Minimize Button
+            minButton = CreateButton(header.transform, "MinButton", "_", new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 12f);
+            var minLe = minButton.gameObject.AddComponent<LayoutElement>();
+            minLe.preferredWidth = 28f;
+            minLe.preferredHeight = 24f;
             minButtonText = minButton.GetComponentInChildren<TextMeshProUGUI>();
-            if (iconMinimize != null)
-            {
-                var iconObj = new GameObject("Icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                iconObj.transform.SetParent(minButton.transform, false);
-                minButtonIconImage = iconObj.GetComponent<Image>();
-                minButtonIconImage.sprite = iconMinimize;
-                minButtonIconImage.raycastTarget = false;
-                if (minButtonText != null) minButtonText.gameObject.SetActive(false);
-            }
         }
 
-        private void BuildMinimizedRoot()
+        private void BuildMinimizedBar()
         {
-            minimizedRoot = CreateLayoutObject("MinimizedRoot", transform, 30f);
+            minimizedRoot = CreateRow("MinimizedRoot", transform, 30f);
             var hGroup = minimizedRoot.AddComponent<HorizontalLayoutGroup>();
             hGroup.spacing = 6f;
             hGroup.childControlWidth = false;
@@ -204,91 +202,87 @@ namespace Tetromiko.CardsHandLayout.Samples
             hGroup.childForceExpandHeight = true;
             hGroup.childAlignment = TextAnchor.MiddleCenter;
 
-            miniRemoveCardBtn = CreateButton(minimizedRoot.transform, "MiniRemove", "−", new Vector2(28f, 28f), new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 14f);
-            miniCountText = CreateText(minimizedRoot.transform, "MiniCount", "5", 13, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
-            miniCountText.gameObject.AddComponent<LayoutElement>().preferredWidth = 36f;
-            miniAddCardBtn = CreateButton(minimizedRoot.transform, "MiniAdd", "+", new Vector2(28f, 28f), new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 14f);
+            miniRemoveCardBtn = CreateButton(minimizedRoot.transform, "MiniRemove", "−", new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 14f);
+            miniRemoveCardBtn.gameObject.AddComponent<LayoutElement>().preferredWidth = 30f;
 
-            miniResetHandBtn = CreateButton(minimizedRoot.transform, "MiniReset", "Скинути", new Vector2(70f, 28f), new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 11f);
-            miniResetHandBtn.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            miniCountText = CreateText(minimizedRoot.transform, "MiniCount", "5", 13, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
+            miniCountText.gameObject.AddComponent<LayoutElement>().preferredWidth = 40f;
+
+            miniAddCardBtn = CreateButton(minimizedRoot.transform, "MiniAdd", "+", new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 14f);
+            miniAddCardBtn.gameObject.AddComponent<LayoutElement>().preferredWidth = 30f;
+
+            miniResetHandBtn = CreateButton(minimizedRoot.transform, "MiniReset", "Скинути", new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 11f);
+            miniResetHandBtn.gameObject.AddComponent<LayoutElement>().preferredWidth = 190f;
 
             minimizedRoot.SetActive(false);
         }
 
-        private void BuildExpandedContent()
+        private void BuildMainContent()
         {
-            contentRoot = CreateLayoutObject("ContentRoot", transform, -1f);
+            contentRoot = CreateRow("ContentRoot", transform, -1f);
             var vGroup = contentRoot.AddComponent<VerticalLayoutGroup>();
-            vGroup.spacing = 6f;
+            vGroup.spacing = 8f;
             vGroup.childControlWidth = true;
             vGroup.childControlHeight = true;
             vGroup.childForceExpandWidth = true;
             vGroup.childForceExpandHeight = false;
 
-            contentRoot.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            // 1. Actions Bar [ - ] [ 5 ] [ + ] [ Скинути руку ]
+            var actionsRow = CreateRow("ActionsRow", contentRoot.transform, 30f);
+            var aGroup = actionsRow.AddComponent<HorizontalLayoutGroup>();
+            aGroup.spacing = 6f;
+            aGroup.childControlWidth = false;
+            aGroup.childControlHeight = true;
+            aGroup.childForceExpandWidth = false;
+            aGroup.childForceExpandHeight = true;
+            aGroup.childAlignment = TextAnchor.MiddleLeft;
 
-            // 1. Actions Bar [ − 5 + ] [ Скинути руку ]
-            var topBar = CreateLayoutObject("TopBar", contentRoot.transform, 28f);
-            var topBarH = topBar.AddComponent<HorizontalLayoutGroup>();
-            topBarH.spacing = 6f;
-            topBarH.childControlWidth = false;
-            topBarH.childControlHeight = true;
-            topBarH.childForceExpandWidth = false;
-            topBarH.childForceExpandHeight = true;
+            removeCardBtn = CreateButton(actionsRow.transform, "RemoveBtn", "−", new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 14f);
+            removeCardBtn.gameObject.AddComponent<LayoutElement>().preferredWidth = 32f;
 
-            // Counter Box
-            var counterBox = CreateLayoutObject("CounterBox", topBar.transform, 28f);
-            counterBox.AddComponent<Image>().color = new Color(0.24f, 0.24f, 0.27f, 1f);
-            var cbLayout = counterBox.AddComponent<HorizontalLayoutGroup>();
-            cbLayout.padding = new RectOffset(2, 2, 2, 2);
-            cbLayout.spacing = 2f;
-            cbLayout.childControlWidth = false;
-            cbLayout.childControlHeight = true;
-            cbLayout.childForceExpandWidth = false;
-            cbLayout.childForceExpandHeight = true;
-            counterBox.AddComponent<LayoutElement>().preferredWidth = 100f;
+            countText = CreateText(actionsRow.transform, "CountText", "5", 13, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
+            countText.gameObject.AddComponent<LayoutElement>().preferredWidth = 38f;
 
-            removeCardBtn = CreateButton(counterBox.transform, "RemoveBtn", "−", new Vector2(26f, 24f), new Color(0.32f, 0.32f, 0.36f, 1f), Color.white, 13f);
-            countText = CreateText(counterBox.transform, "Count", "5", 12, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
-            countText.gameObject.AddComponent<LayoutElement>().preferredWidth = 40f;
-            addCardBtn = CreateButton(counterBox.transform, "AddBtn", "+", new Vector2(26f, 24f), new Color(0.32f, 0.32f, 0.36f, 1f), Color.white, 13f);
+            addCardBtn = CreateButton(actionsRow.transform, "AddBtn", "+", new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 14f);
+            addCardBtn.gameObject.AddComponent<LayoutElement>().preferredWidth = 32f;
 
-            // Reset Button
-            resetHandBtn = CreateButton(topBar.transform, "ResetBtn", "Скинути руку", new Vector2(0f, 28f), new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 11f);
-            resetHandBtn.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            resetHandBtn = CreateButton(actionsRow.transform, "ResetHandBtn", "Скинути руку", new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 11f);
+            resetHandBtn.gameObject.AddComponent<LayoutElement>().preferredWidth = 190f;
 
             CreateDivider(contentRoot.transform);
 
-            // 2. Sliders
-            CreateSliderRow(contentRoot.transform, "Ширина карти", 60f, 200f, 112f, out cardWidthSlider, out cardWidthInput);
-            CreateSliderRow(contentRoot.transform, "Ширина руки", 300f, 1400f, 680f, out handWidthSlider, out handWidthInput);
-            CreateSliderRow(contentRoot.transform, "Відстань між картами", 24f, 220f, 56f, out cardDistSlider, out cardDistInput);
-            CreateSliderRow(contentRoot.transform, "Мінімальна відстань", 4f, 100f, 24f, out minCardDistSlider, out minCardDistInput);
-            CreateSliderRow(contentRoot.transform, "Відстань ховеру", 112f, 280f, 112f, out hoverDistSlider, out hoverDistInput);
-            CreateSliderRow(contentRoot.transform, "Підйом при ховері", 0f, 80f, 28f, out hoverLiftSlider, out hoverLiftInput);
+            // 2. Sliders (Each has fixed height = 36px, zero nested fitters)
+            CreateSliderEntry(contentRoot.transform, "Ширина карти", 60f, 200f, 112f, out cardWidthSlider, out cardWidthInput);
+            CreateSliderEntry(contentRoot.transform, "Ширина руки", 300f, 1400f, 680f, out handWidthSlider, out handWidthInput);
+            CreateSliderEntry(contentRoot.transform, "Відстань між картами", 24f, 220f, 56f, out cardDistSlider, out cardDistInput);
+            CreateSliderEntry(contentRoot.transform, "Мінімальна відстань", 4f, 100f, 24f, out minCardDistSlider, out minCardDistInput);
+            CreateSliderEntry(contentRoot.transform, "Відстань ховеру", 112f, 280f, 112f, out hoverDistSlider, out hoverDistInput);
+            CreateSliderEntry(contentRoot.transform, "Підйом при ховері", 0f, 80f, 28f, out hoverLiftSlider, out hoverLiftInput);
 
             CreateDivider(contentRoot.transform);
 
-            // 3. Layout Details Toggle
-            var toggleRow = CreateLayoutObject("ToggleRow", contentRoot.transform, 26f);
-            var trH = toggleRow.AddComponent<HorizontalLayoutGroup>();
-            trH.spacing = 6f;
-            trH.childControlWidth = false;
-            trH.childControlHeight = true;
-            trH.childForceExpandWidth = false;
-            trH.childForceExpandHeight = true;
-            trH.childAlignment = TextAnchor.MiddleLeft;
+            // 3. Layout Details Toggle Row
+            var toggleRow = CreateRow("ToggleRow", contentRoot.transform, 28f);
+            var tGroup = toggleRow.AddComponent<HorizontalLayoutGroup>();
+            tGroup.spacing = 8f;
+            tGroup.childControlWidth = false;
+            tGroup.childControlHeight = true;
+            tGroup.childForceExpandWidth = false;
+            tGroup.childForceExpandHeight = true;
+            tGroup.childAlignment = TextAnchor.MiddleLeft;
 
-            var toggleLbl = CreateText(toggleRow.transform, "Label", "Деталі розмітки", 12, FontStyles.Normal, Color.white, TextAlignmentOptions.MidlineLeft);
-            toggleLbl.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            var tLbl = CreateText(toggleRow.transform, "ToggleLbl", "Деталі розмітки", 12, FontStyles.Normal, Color.white, TextAlignmentOptions.MidlineLeft);
+            tLbl.gameObject.AddComponent<LayoutElement>().preferredWidth = 190f;
 
-            layoutDetailsBtn = CreateButton(toggleRow.transform, "DetailsBtn", "Увімкнено", new Vector2(100f, 24f), new Color(0.24f, 0.45f, 0.65f, 1f), Color.white, 11f);
+            layoutDetailsBtn = CreateButton(toggleRow.transform, "DetailsBtn", "Вимкнено", new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 11f);
+            layoutDetailsBtn.gameObject.AddComponent<LayoutElement>().preferredWidth = 110f;
             layoutDetailsBtnText = layoutDetailsBtn.GetComponentInChildren<TextMeshProUGUI>();
 
-            // 4. Telemetry Row
-            var telRow = CreateLayoutObject("TelRow", contentRoot.transform, 22f);
-            telRow.AddComponent<Image>().color = new Color(0.14f, 0.14f, 0.16f, 1f);
-            var telH = telRow.AddComponent<HorizontalLayoutGroup>();
+            // 4. Telemetry Bar
+            var telBar = CreateRow("TelemetryBar", contentRoot.transform, 22f);
+            var telBg = telBar.AddComponent<Image>();
+            telBg.color = new Color(0.13f, 0.13f, 0.15f, 1f);
+            var telH = telBar.AddComponent<HorizontalLayoutGroup>();
             telH.padding = new RectOffset(6, 6, 2, 2);
             telH.spacing = 6f;
             telH.childControlWidth = false;
@@ -297,27 +291,27 @@ namespace Tetromiko.CardsHandLayout.Samples
             telH.childForceExpandHeight = true;
             telH.childAlignment = TextAnchor.MiddleLeft;
 
-            telemetryStateText = CreateText(telRow.transform, "TelState", "Normal", 10, FontStyles.Bold, Color.white, TextAlignmentOptions.MidlineLeft);
-            telemetryStateText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            telemetryStateText = CreateText(telBar.transform, "StateText", "Normal", 10, FontStyles.Bold, Color.white, TextAlignmentOptions.MidlineLeft);
+            telemetryStateText.gameObject.AddComponent<LayoutElement>().preferredWidth = 90f;
 
-            telemetryStepText = CreateText(telRow.transform, "TelStep", "step: 56px", 10, FontStyles.Normal, Color.white * 0.8f, TextAlignmentOptions.Center);
-            telemetryStepText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            telemetryStepText = CreateText(telBar.transform, "StepText", "step: 56px", 10, FontStyles.Normal, Color.white * 0.8f, TextAlignmentOptions.Center);
+            telemetryStepText.gameObject.AddComponent<LayoutElement>().preferredWidth = 100f;
 
-            telemetryHStepText = CreateText(telRow.transform, "TelHStep", "h-step: 112px", 10, FontStyles.Normal, Color.white * 0.8f, TextAlignmentOptions.MidlineRight);
-            telemetryHStepText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            telemetryHStepText = CreateText(telBar.transform, "HStepText", "h-step: 112px", 10, FontStyles.Normal, Color.white * 0.8f, TextAlignmentOptions.MidlineRight);
+            telemetryHStepText.gameObject.AddComponent<LayoutElement>().preferredWidth = 100f;
         }
 
-        private GameObject CreateLayoutObject(string name, Transform parent, float preferredHeight = -1f)
+        private GameObject CreateRow(string name, Transform parent, float height)
         {
-            var obj = new GameObject(name, typeof(RectTransform));
-            obj.transform.SetParent(parent, false);
-            if (preferredHeight > 0f)
+            var row = new GameObject(name, typeof(RectTransform));
+            row.transform.SetParent(parent, false);
+            if (height > 0f)
             {
-                var le = obj.AddComponent<LayoutElement>();
-                le.preferredHeight = preferredHeight;
-                le.minHeight = preferredHeight;
+                var le = row.AddComponent<LayoutElement>();
+                le.preferredHeight = height;
+                le.minHeight = height;
             }
-            return obj;
+            return row;
         }
 
         private void CreateDivider(Transform parent)
@@ -330,65 +324,81 @@ namespace Tetromiko.CardsHandLayout.Samples
             le.minHeight = 1f;
         }
 
-        private void CreateSliderRow(Transform parent, string label, float min, float max, float defaultVal, out Slider slider, out TMP_InputField inputField)
+        private void CreateSliderEntry(Transform parent, string label, float min, float max, float defaultVal, out Slider slider, out TMP_InputField inputField)
         {
-            var row = CreateLayoutObject("SliderRow_" + label, parent, -1f);
-            var vGroup = row.AddComponent<VerticalLayoutGroup>();
-            vGroup.spacing = 2f;
-            vGroup.childControlWidth = true;
-            vGroup.childControlHeight = true;
-            vGroup.childForceExpandWidth = true;
-            vGroup.childForceExpandHeight = false;
+            // Single container per slider entry with fixed height = 36px
+            var entry = CreateRow("SliderEntry_" + label, parent, 36f);
 
-            row.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            // Label (anchored top-left)
+            var lblObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+            lblObj.transform.SetParent(entry.transform, false);
+            var lblRt = lblObj.GetComponent<RectTransform>();
+            lblRt.anchorMin = new Vector2(0f, 0.5f);
+            lblRt.anchorMax = new Vector2(0f, 1f);
+            lblRt.pivot = new Vector2(0f, 0.5f);
+            lblRt.anchoredPosition = new Vector2(0f, 0f);
+            lblRt.sizeDelta = new Vector2(200f, 18f);
 
-            // Row 1: Header [ Label | InputField | px ]
-            var header = CreateLayoutObject("Header", row.transform, 18f);
-            var hGroup = header.AddComponent<HorizontalLayoutGroup>();
-            hGroup.spacing = 4f;
-            hGroup.childControlWidth = false;
-            hGroup.childControlHeight = true;
-            hGroup.childForceExpandWidth = false;
-            hGroup.childForceExpandHeight = true;
-            hGroup.childAlignment = TextAnchor.MiddleLeft;
+            var lbl = lblObj.GetComponent<TextMeshProUGUI>();
+            lbl.text = label;
+            lbl.fontSize = 11;
+            lbl.color = Color.white;
+            lbl.alignment = TextAlignmentOptions.MidlineLeft;
+            lbl.enableWordWrapping = false;
 
-            var lbl = CreateText(header.transform, "Label", label, 11, FontStyles.Normal, Color.white, TextAlignmentOptions.MidlineLeft);
-            lbl.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            // Unit "px" (anchored top-right)
+            var pxObj = new GameObject("Unit", typeof(RectTransform), typeof(TextMeshProUGUI));
+            pxObj.transform.SetParent(entry.transform, false);
+            var pxRt = pxObj.GetComponent<RectTransform>();
+            pxRt.anchorMin = new Vector2(1f, 0.5f);
+            pxRt.anchorMax = new Vector2(1f, 1f);
+            pxRt.pivot = new Vector2(1f, 0.5f);
+            pxRt.anchoredPosition = new Vector2(0f, 0f);
+            pxRt.sizeDelta = new Vector2(18f, 18f);
 
-            // Value Input Field
-            var inputObj = CreateLayoutObject("Input", header.transform, 18f);
-            inputObj.AddComponent<Image>().color = new Color(0.12f, 0.12f, 0.14f, 1f);
+            var px = pxObj.GetComponent<TextMeshProUGUI>();
+            px.text = "px";
+            px.fontSize = 10;
+            px.color = Color.white * 0.7f;
+            px.alignment = TextAlignmentOptions.MidlineRight;
 
-            var inLe = inputObj.AddComponent<LayoutElement>();
-            inLe.preferredWidth = 50f;
-            inLe.minWidth = 50f;
+            // Input Field (anchored to the left of "px")
+            var inObj = new GameObject("Input", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            inObj.transform.SetParent(entry.transform, false);
+            var inRt = inObj.GetComponent<RectTransform>();
+            inRt.anchorMin = new Vector2(1f, 0.5f);
+            inRt.anchorMax = new Vector2(1f, 1f);
+            inRt.pivot = new Vector2(1f, 0.5f);
+            inRt.anchoredPosition = new Vector2(-22f, 0f);
+            inRt.sizeDelta = new Vector2(50f, 18f);
+            inObj.GetComponent<Image>().color = new Color(0.12f, 0.12f, 0.14f, 1f);
 
-            var textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
-            textObj.transform.SetParent(inputObj.transform, false);
-            var textRt = textObj.GetComponent<RectTransform>();
-            textRt.anchorMin = Vector2.zero;
-            textRt.anchorMax = Vector2.one;
-            textRt.sizeDelta = Vector2.zero;
+            var inTxtObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+            inTxtObj.transform.SetParent(inObj.transform, false);
+            var inTxtRt = inTxtObj.GetComponent<RectTransform>();
+            inTxtRt.anchorMin = Vector2.zero;
+            inTxtRt.anchorMax = Vector2.one;
+            inTxtRt.sizeDelta = Vector2.zero;
 
-            var inTmp = textObj.GetComponent<TextMeshProUGUI>();
+            var inTmp = inTxtObj.GetComponent<TextMeshProUGUI>();
             inTmp.fontSize = 11;
             inTmp.alignment = TextAlignmentOptions.MidlineRight;
             inTmp.color = Color.white;
 
-            inputField = inputObj.AddComponent<TMP_InputField>();
+            inputField = inObj.AddComponent<TMP_InputField>();
             inputField.textComponent = inTmp;
             inputField.contentType = TMP_InputField.ContentType.IntegerNumber;
             inputField.text = Mathf.RoundToInt(defaultVal).ToString();
 
-            // Unit Label ("px")
-            var pxLbl = CreateText(header.transform, "Px", "px", 10, FontStyles.Normal, Color.white * 0.7f, TextAlignmentOptions.MidlineLeft);
-            pxLbl.gameObject.AddComponent<LayoutElement>().preferredWidth = 16f;
-
-            // Row 2: Standard uGUI Slider
-            var sliderObj = CreateLayoutObject("Slider", row.transform, 14f);
-            var sliderLe = sliderObj.AddComponent<LayoutElement>();
-            sliderLe.preferredHeight = 14f;
-            sliderLe.minHeight = 14f;
+            // Slider Bar (anchored bottom, full width)
+            var sliderObj = new GameObject("Slider", typeof(RectTransform));
+            sliderObj.transform.SetParent(entry.transform, false);
+            var sRt = sliderObj.GetComponent<RectTransform>();
+            sRt.anchorMin = new Vector2(0f, 0f);
+            sRt.anchorMax = new Vector2(1f, 0.45f);
+            sRt.pivot = new Vector2(0.5f, 0.5f);
+            sRt.anchoredPosition = Vector2.zero;
+            sRt.sizeDelta = Vector2.zero;
 
             // Background Track
             var bgTrack = new GameObject("Background", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
@@ -413,7 +423,7 @@ namespace Tetromiko.CardsHandLayout.Samples
             fillRt.sizeDelta = Vector2.zero;
             fill.GetComponent<Image>().color = new Color(0.35f, 0.60f, 0.90f, 1f);
 
-            // Handle Slide Area & Handle
+            // Handle Area & Handle
             var handleArea = new GameObject("HandleArea", typeof(RectTransform));
             handleArea.transform.SetParent(sliderObj.transform, false);
             var haRt = handleArea.GetComponent<RectTransform>();
@@ -424,7 +434,7 @@ namespace Tetromiko.CardsHandLayout.Samples
             var handle = new GameObject("Handle", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             handle.transform.SetParent(handleArea.transform, false);
             var hRt = handle.GetComponent<RectTransform>();
-            hRt.sizeDelta = new Vector2(12f, 12f);
+            hRt.sizeDelta = new Vector2(12f, 14f);
             handle.GetComponent<Image>().color = Color.white;
 
             slider = sliderObj.AddComponent<Slider>();
@@ -446,15 +456,14 @@ namespace Tetromiko.CardsHandLayout.Samples
             tmp.fontStyle = style;
             tmp.color = color;
             tmp.alignment = align;
+            tmp.enableWordWrapping = false;
             return tmp;
         }
 
-        private Button CreateButton(Transform parent, string name, string label, Vector2 size, Color bg, Color textCol, float fontSize)
+        private Button CreateButton(Transform parent, string name, string label, Color bg, Color textCol, float fontSize)
         {
             var btnObj = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
             btnObj.transform.SetParent(parent, false);
-            var rt = btnObj.GetComponent<RectTransform>();
-            rt.sizeDelta = size;
             btnObj.GetComponent<Image>().color = bg;
 
             var txtObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -470,6 +479,7 @@ namespace Tetromiko.CardsHandLayout.Samples
             tmp.fontStyle = FontStyles.Normal;
             tmp.color = textCol;
             tmp.alignment = TextAlignmentOptions.Center;
+            tmp.enableWordWrapping = false;
 
             return btnObj.GetComponent<Button>();
         }
@@ -626,10 +636,6 @@ namespace Tetromiko.CardsHandLayout.Samples
             if (minButtonText != null)
             {
                 minButtonText.text = isMinimized ? "□" : "_";
-            }
-            if (minButtonIconImage != null)
-            {
-                minButtonIconImage.sprite = isMinimized ? iconExpand : iconMinimize;
             }
         }
 

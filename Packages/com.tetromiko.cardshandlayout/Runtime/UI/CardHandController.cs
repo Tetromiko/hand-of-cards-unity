@@ -15,6 +15,7 @@ namespace Tetromiko.CardsHandLayout
         [SerializeField] private HandSettings settings = HandSettings.CreateDefault();
         [SerializeField] private CardView cardPrefab;
         [SerializeField] private RectTransform cardsContainer;
+        [SerializeField] private RectTransform slotsContainer;
 
         [Header("Initial Setup")]
         [SerializeField] private bool populateDefaultCardsOnStart = true;
@@ -27,9 +28,10 @@ namespace Tetromiko.CardsHandLayout
         public UnityEvent<int, int> onCardsReordered = new UnityEvent<int, int>();
         public UnityEvent onHandUpdated = new UnityEvent();
 
-        // Runtime Cards State
+        // Runtime Cards & Slots State
         private readonly List<CardData> cardsData = new List<CardData>();
         private readonly List<CardView> cardViews = new List<CardView>();
+        private readonly List<CardSlotView> slotViews = new List<CardSlotView>();
 
         // Interaction State
         private int? hoveredIndex = null;
@@ -44,37 +46,61 @@ namespace Tetromiko.CardsHandLayout
         private RectTransform rectTransform;
         public RectTransform RectTransform => rectTransform != null ? rectTransform : (rectTransform = GetComponent<RectTransform>());
         public RectTransform Container => cardsContainer != null ? cardsContainer : RectTransform;
+        public RectTransform SlotsContainer => slotsContainer != null ? slotsContainer : RectTransform;
         public HandSettings Settings => settings;
         public IReadOnlyList<CardView> CardViews => cardViews;
+        public IReadOnlyList<CardSlotView> SlotViews => slotViews;
         public IReadOnlyList<CardData> CardsData => cardsData;
         public int CardsCount => cardViews.Count;
+        public int? HoveredIndex => hoveredIndex;
 
         private void Awake()
         {
             rectTransform = GetComponent<RectTransform>();
             if (cardsContainer == null) cardsContainer = rectTransform;
+            EnsureSlotsContainer();
         }
 
         private void Start()
         {
-            EnsureEventSystem();
+            EventSystemAdapter.EnsureAdaptiveEventSystem();
             if (Application.isPlaying && populateDefaultCardsOnStart && cardViews.Count == 0)
             {
                 CreateDefaultCards(initialCardCount);
             }
         }
 
-        private void EnsureEventSystem()
+        private void EnsureSlotsContainer()
         {
-            if (Application.isPlaying && EventSystem.current == null)
+            if (slotsContainer == null)
             {
-                var eventSystemObj = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+                var existing = transform.Find("SlotsLayer");
+                if (existing != null)
+                {
+                    slotsContainer = existing.GetComponent<RectTransform>();
+                }
+                else
+                {
+                    var slotsObj = new GameObject("SlotsLayer", typeof(RectTransform));
+                    slotsObj.transform.SetParent(transform, false);
+                    slotsObj.transform.SetAsFirstSibling(); // Render behind cards for clean raycasting
+                    slotsContainer = slotsObj.GetComponent<RectTransform>();
+                    slotsContainer.anchorMin = Vector2.zero;
+                    slotsContainer.anchorMax = Vector2.one;
+                    slotsContainer.sizeDelta = Vector2.zero;
+                }
             }
         }
 
         private void Update()
         {
-            if (cardViews.Count == 0) return;
+            EnsureSlotsContainer();
+
+            if (cardViews.Count == 0)
+            {
+                SyncSlotViewsCount(0);
+                return;
+            }
 
             // Enforce minimum hand width constraint
             float minHandWidth = CardHandLayoutEngine.CalculateMinHandWidth(
@@ -90,8 +116,19 @@ namespace Tetromiko.CardsHandLayout
 
             int? activeIndex = isDragging ? dragTargetIndex : hoveredIndex;
             var metrics = CardHandLayoutEngine.ComputeHandMetrics(cardViews.Count, settings, activeIndex);
+            var zones = CardHandLayoutEngine.GetSlotHoverZones(metrics, settings);
 
-            // Update card targets and motion
+            // 1. Synchronize and update interaction slots
+            SyncSlotViewsCount(cardViews.Count);
+            for (int s = 0; s < slotViews.Count && s < zones.Count; s++)
+            {
+                if (slotViews[s] != null)
+                {
+                    slotViews[s].UpdateZone(zones[s], settings.cardHeight);
+                }
+            }
+
+            // 2. Update card positions, scales and animations
             for (int i = 0; i < cardViews.Count; i++)
             {
                 var cardView = cardViews[i];
@@ -120,7 +157,7 @@ namespace Tetromiko.CardsHandLayout
 
                 cardView.SetVisualState(transformData.State);
 
-                // Set hierarchy depth ordering
+                // Hierarchy depth ordering
                 if (transformData.State == CardInteractionState.Dragged)
                 {
                     cardView.transform.SetAsLastSibling();
@@ -133,6 +170,33 @@ namespace Tetromiko.CardsHandLayout
                 {
                     cardView.transform.SetSiblingIndex(i);
                 }
+            }
+        }
+
+        private void SyncSlotViewsCount(int targetCount)
+        {
+            // Remove excess slots
+            while (slotViews.Count > targetCount)
+            {
+                int lastIdx = slotViews.Count - 1;
+                var slot = slotViews[lastIdx];
+                slotViews.RemoveAt(lastIdx);
+                if (slot != null)
+                {
+                    if (Application.isPlaying) Destroy(slot.gameObject);
+                    else DestroyImmediate(slot.gameObject);
+                }
+            }
+
+            // Add missing slots
+            while (slotViews.Count < targetCount)
+            {
+                int newIdx = slotViews.Count;
+                var slotObj = new GameObject($"Slot_{newIdx}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CardSlotView));
+                slotObj.transform.SetParent(SlotsContainer, false);
+                var slotView = slotObj.GetComponent<CardSlotView>();
+                slotView.Initialize(newIdx, this);
+                slotViews.Add(slotView);
             }
         }
 
@@ -178,11 +242,11 @@ namespace Tetromiko.CardsHandLayout
 
             var img = cardObj.GetComponent<Image>();
             img.color = new Color(0.98f, 0.98f, 1f, 1f);
+            img.raycastTarget = true;
 
-            var cardView = cardObj.GetComponent<CardView>();
-            cardView.SetupProceduralHierarchy();
-
-            return cardView;
+            var view = cardObj.GetComponent<CardView>();
+            view.EnsureDefaultCardVisuals();
+            return view;
         }
 
         public void RemoveCard(int index)
@@ -191,7 +255,11 @@ namespace Tetromiko.CardsHandLayout
 
             var view = cardViews[index];
             cardViews.RemoveAt(index);
-            if (index < cardsData.Count) cardsData.RemoveAt(index);
+
+            if (index < cardsData.Count)
+            {
+                cardsData.RemoveAt(index);
+            }
 
             if (view != null)
             {
@@ -246,6 +314,7 @@ namespace Tetromiko.CardsHandLayout
 
             cardViews.Clear();
             cardsData.Clear();
+            SyncSlotViewsCount(0);
             hoveredIndex = null;
             isDragging = false;
             draggedCard = null;
@@ -276,46 +345,58 @@ namespace Tetromiko.CardsHandLayout
             return new CardData(null, rank, suit);
         }
 
-        // Pointer event callbacks from CardView
-        internal void OnCardPointerEnter(CardView card)
+        // --- Slot-Driven Interaction Callbacks ---
+
+        internal void OnSlotPointerEnter(int slotIndex)
         {
             if (isDragging) return;
-            int idx = cardViews.IndexOf(card);
-            if (idx >= 0)
+            if (slotIndex >= 0 && slotIndex < cardViews.Count)
             {
-                hoveredIndex = idx;
-                onCardHovered?.Invoke(card);
+                hoveredIndex = slotIndex;
+                onCardHovered?.Invoke(cardViews[slotIndex]);
             }
         }
 
-        internal void OnCardPointerExit(CardView card)
+        internal void OnSlotPointerMove(int slotIndex, PointerEventData eventData)
         {
             if (isDragging) return;
-            int idx = cardViews.IndexOf(card);
-            if (hoveredIndex.HasValue && hoveredIndex.Value == idx)
+            if (slotIndex >= 0 && slotIndex < cardViews.Count && hoveredIndex != slotIndex)
             {
+                hoveredIndex = slotIndex;
+                onCardHovered?.Invoke(cardViews[slotIndex]);
+            }
+        }
+
+        internal void OnSlotPointerExit(int slotIndex)
+        {
+            if (isDragging) return;
+            if (hoveredIndex.HasValue && hoveredIndex.Value == slotIndex)
+            {
+                var card = (slotIndex >= 0 && slotIndex < cardViews.Count) ? cardViews[slotIndex] : null;
                 hoveredIndex = null;
-                onCardUnhovered?.Invoke(card);
+                if (card != null) onCardUnhovered?.Invoke(card);
             }
         }
 
-        internal void OnCardClicked(CardView card)
+        internal void OnSlotClicked(int slotIndex)
         {
-            onCardClicked?.Invoke(card);
+            if (slotIndex >= 0 && slotIndex < cardViews.Count)
+            {
+                onCardClicked?.Invoke(cardViews[slotIndex]);
+            }
         }
 
-        internal void OnCardBeginDrag(CardView card, PointerEventData eventData)
+        internal void OnSlotBeginDrag(int slotIndex, PointerEventData eventData)
         {
-            int idx = cardViews.IndexOf(card);
-            if (idx < 0) return;
+            if (slotIndex < 0 || slotIndex >= cardViews.Count) return;
 
             isDragging = true;
-            draggedCard = card;
-            draggedIndex = idx;
-            dragTargetIndex = idx;
+            draggedCard = cardViews[slotIndex];
+            draggedIndex = slotIndex;
+            dragTargetIndex = slotIndex;
 
-            var metrics = CardHandLayoutEngine.ComputeHandMetrics(cardViews.Count, settings, idx);
-            initialDragX = CardHandLayoutEngine.GetSlotXPos(idx, metrics, settings);
+            var metrics = CardHandLayoutEngine.ComputeHandMetrics(cardViews.Count, settings, slotIndex);
+            initialDragX = CardHandLayoutEngine.GetSlotXPos(slotIndex, metrics, settings);
             dragOffset = Vector2.zero;
 
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
@@ -328,7 +409,7 @@ namespace Tetromiko.CardsHandLayout
             hoveredIndex = null;
         }
 
-        internal void OnCardDrag(CardView card, PointerEventData eventData)
+        internal void OnSlotDrag(int slotIndex, PointerEventData eventData)
         {
             if (!isDragging || Container == null) return;
 
@@ -351,7 +432,7 @@ namespace Tetromiko.CardsHandLayout
             }
         }
 
-        internal void OnCardEndDrag(CardView card, PointerEventData eventData)
+        internal void OnSlotEndDrag(int slotIndex, PointerEventData eventData)
         {
             if (!isDragging) return;
 
@@ -360,11 +441,12 @@ namespace Tetromiko.CardsHandLayout
 
             if (sourceIdx >= 0 && targetIdx >= 0 && sourceIdx != targetIdx && sourceIdx < cardViews.Count && targetIdx < cardViews.Count)
             {
-                // Reorder lists
+                // Reorder card views
                 var movedView = cardViews[sourceIdx];
                 cardViews.RemoveAt(sourceIdx);
                 cardViews.Insert(targetIdx, movedView);
 
+                // Reorder data
                 if (sourceIdx < cardsData.Count && targetIdx < cardsData.Count)
                 {
                     var movedData = cardsData[sourceIdx];
@@ -372,7 +454,7 @@ namespace Tetromiko.CardsHandLayout
                     cardsData.Insert(targetIdx, movedData);
                 }
 
-                // Update card indices
+                // Update indices
                 for (int i = 0; i < cardViews.Count; i++)
                 {
                     if (cardViews[i] != null) cardViews[i].SetIndex(i);
@@ -389,6 +471,43 @@ namespace Tetromiko.CardsHandLayout
             dragOffset = Vector2.zero;
 
             onHandUpdated?.Invoke();
+        }
+
+        // Direct Card Event Forwarding (in case user clicks/drags directly on card)
+        internal void OnCardPointerEnter(CardView card)
+        {
+            int idx = cardViews.IndexOf(card);
+            if (idx >= 0) OnSlotPointerEnter(idx);
+        }
+
+        internal void OnCardPointerExit(CardView card)
+        {
+            int idx = cardViews.IndexOf(card);
+            if (idx >= 0) OnSlotPointerExit(idx);
+        }
+
+        internal void OnCardClicked(CardView card)
+        {
+            int idx = cardViews.IndexOf(card);
+            if (idx >= 0) OnSlotClicked(idx);
+        }
+
+        internal void OnCardBeginDrag(CardView card, PointerEventData eventData)
+        {
+            int idx = cardViews.IndexOf(card);
+            if (idx >= 0) OnSlotBeginDrag(idx, eventData);
+        }
+
+        internal void OnCardDrag(CardView card, PointerEventData eventData)
+        {
+            int idx = cardViews.IndexOf(card);
+            if (idx >= 0) OnSlotDrag(idx, eventData);
+        }
+
+        internal void OnCardEndDrag(CardView card, PointerEventData eventData)
+        {
+            int idx = cardViews.IndexOf(card);
+            if (idx >= 0) OnSlotEndDrag(idx, eventData);
         }
 
 #if UNITY_EDITOR
