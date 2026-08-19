@@ -7,6 +7,7 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
     /// <summary>
     /// UI Toolkit VisualElement representing an individual playing card.
     /// Handles visual presentation, rank/suit formatting, and smooth animation.
+    /// Uses PickingMode.Ignore so spatial Slot elements receive pointer events seamlessly.
     /// </summary>
     public class CardElement : VisualElement
     {
@@ -34,6 +35,7 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
             this.Index = index;
 
             name = $"Card_{index}";
+            pickingMode = PickingMode.Ignore;
             style.position = Position.Absolute;
 
             // Standard Card Styling
@@ -56,6 +58,7 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
             topRankLabel = new Label
             {
                 name = "TopRank",
+                pickingMode = PickingMode.Ignore,
                 style =
                 {
                     position = Position.Absolute,
@@ -71,6 +74,7 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
             centerSuitLabel = new Label
             {
                 name = "CenterSuit",
+                pickingMode = PickingMode.Ignore,
                 style =
                 {
                     position = Position.Absolute,
@@ -88,6 +92,7 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
             bottomRankLabel = new Label
             {
                 name = "BottomRank",
+                pickingMode = PickingMode.Ignore,
                 style =
                 {
                     position = Position.Absolute,
@@ -103,6 +108,7 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
             centerIndexLabel = new Label
             {
                 name = "CenterIndex",
+                pickingMode = PickingMode.Ignore,
                 style =
                 {
                     position = Position.Absolute,
@@ -215,7 +221,7 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
             this.targetScale = targetSc;
         }
 
-        public void UpdateMotion(float smoothTime, float maxSpeed, float deltaTime, bool isDirectDrag)
+        public void UpdateMotion(float cardWidth, float cardHeight, float smoothTime, float maxSpeed, float deltaTime, bool isDirectDrag)
         {
             if (isDirectDrag)
             {
@@ -229,19 +235,19 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
                 currentScale = Mathf.SmoothDamp(currentScale, targetScale, ref scaleVelocity, smoothTime, maxSpeed, deltaTime);
             }
 
-            style.left = currentPosition.x - (resolvedStyle.width * 0.5f);
-            style.top = currentPosition.y - (resolvedStyle.height * 0.5f);
+            style.left = currentPosition.x - (cardWidth * 0.5f);
+            style.top = currentPosition.y - (cardHeight * 0.5f);
             style.scale = new Scale(new Vector3(currentScale, currentScale, 1f));
         }
 
-        public void SnapToTarget()
+        public void SnapToTarget(float cardWidth, float cardHeight)
         {
             currentPosition = targetPosition;
             currentScale = targetScale;
             velocity = Vector2.zero;
             scaleVelocity = 0f;
-            style.left = currentPosition.x - (resolvedStyle.width * 0.5f);
-            style.top = currentPosition.y - (resolvedStyle.height * 0.5f);
+            style.left = currentPosition.x - (cardWidth * 0.5f);
+            style.top = currentPosition.y - (cardHeight * 0.5f);
             style.scale = new Scale(new Vector3(currentScale, currentScale, 1f));
         }
     }

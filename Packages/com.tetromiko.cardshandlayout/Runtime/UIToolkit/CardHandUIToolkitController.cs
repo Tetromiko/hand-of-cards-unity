@@ -8,7 +8,7 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
 {
     /// <summary>
     /// UI Toolkit implementation of the Cards Hand Layout Controller.
-    /// Manages the CardSlotElements and CardElements within a UIDocument.
+    /// Manages CardSlotElements and CardElements within a UIDocument with full pointer and mouse support.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class CardHandUIToolkitController : MonoBehaviour
@@ -94,8 +94,8 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
                         position = Position.Absolute,
                         left = 0,
                         right = 0,
-                        bottom = 80f,
-                        height = settings.cardHeight * 1.5f,
+                        bottom = 40f,
+                        height = settings.cardHeight * 1.6f,
                         justifyContent = Justify.Center,
                         alignItems = Align.Center
                     }
@@ -103,13 +103,38 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
                 root.Add(handRoot);
             }
 
-            // Slots Layer
+            // 1. Cards Layer (Behind slots)
+            cardsLayer = handRoot.Q<VisualElement>("CardsLayer");
+            if (cardsLayer == null)
+            {
+                cardsLayer = new VisualElement
+                {
+                    name = "CardsLayer",
+                    pickingMode = PickingMode.Ignore,
+                    style =
+                    {
+                        position = Position.Absolute,
+                        left = 0,
+                        right = 0,
+                        top = 0,
+                        bottom = 0
+                    }
+                };
+                handRoot.Add(cardsLayer);
+            }
+            else
+            {
+                cardsLayer.pickingMode = PickingMode.Ignore;
+            }
+
+            // 2. Slots Layer (In front of cards to capture pointer events)
             slotsLayer = handRoot.Q<VisualElement>("SlotsLayer");
             if (slotsLayer == null)
             {
                 slotsLayer = new VisualElement
                 {
                     name = "SlotsLayer",
+                    pickingMode = PickingMode.Position,
                     style =
                     {
                         position = Position.Absolute,
@@ -121,29 +146,18 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
                 };
                 handRoot.Add(slotsLayer);
 
-                // Register global pointer up/move for drag handling
-                slotsLayer.RegisterCallback<PointerMoveEvent>(OnGlobalPointerMove);
-                slotsLayer.RegisterCallback<PointerUpEvent>(OnGlobalPointerUp);
-                slotsLayer.RegisterCallback<PointerCaptureOutEvent>(OnGlobalPointerCaptureOut);
-            }
+                // Register global pointer callbacks for dragging
+                slotsLayer.RegisterCallback<PointerMoveEvent>(evt => OnGlobalPointerMove(evt.position));
+                slotsLayer.RegisterCallback<PointerUpEvent>(evt => FinishDrag());
+                slotsLayer.RegisterCallback<PointerCaptureOutEvent>(evt => FinishDrag());
 
-            // Cards Layer
-            cardsLayer = handRoot.Q<VisualElement>("CardsLayer");
-            if (cardsLayer == null)
+                // Mouse fallbacks
+                slotsLayer.RegisterCallback<MouseMoveEvent>(evt => OnGlobalPointerMove(evt.mousePosition));
+                slotsLayer.RegisterCallback<MouseUpEvent>(evt => FinishDrag());
+            }
+            else
             {
-                cardsLayer = new VisualElement
-                {
-                    name = "CardsLayer",
-                    style =
-                    {
-                        position = Position.Absolute,
-                        left = 0,
-                        right = 0,
-                        top = 0,
-                        bottom = 0
-                    }
-                };
-                handRoot.Add(cardsLayer);
+                slotsLayer.pickingMode = PickingMode.Position;
             }
         }
 
@@ -178,7 +192,7 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
             var zones = CardHandLayoutEngine.GetSlotHoverZones(metrics, settings);
 
             float containerCenter = handRoot.resolvedStyle.width > 0f ? handRoot.resolvedStyle.width * 0.5f : Screen.width * 0.5f;
-            float containerY = handRoot.resolvedStyle.height > 0f ? handRoot.resolvedStyle.height * 0.5f : settings.cardHeight * 0.75f;
+            float containerY = handRoot.resolvedStyle.height > 0f ? handRoot.resolvedStyle.height * 0.5f : (settings.cardHeight * 0.8f);
 
             // 1. Synchronize and update slot elements
             SyncSlotElementsCount(cardElements.Count);
@@ -189,6 +203,9 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
                     slotElements[s].UpdateBounds(zones[s], containerCenter, settings.cardHeight);
                 }
             }
+
+            // Keep slots layer in front of cards
+            slotsLayer.BringToFront();
 
             // 2. Update card positions, scales and animations
             float deltaTime = Time.unscaledDeltaTime;
@@ -220,9 +237,9 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
                 card.style.height = settings.cardHeight;
                 card.SetTargetTransform(worldCenterPos, transformData.Scale);
                 card.SetVisualState(transformData.State);
-                card.UpdateMotion(settings.smoothTime, settings.maxSpeed, deltaTime, isDragging && draggedIndex == i);
+                card.UpdateMotion(settings.cardWidth, settings.cardHeight, settings.smoothTime, settings.maxSpeed, deltaTime, isDragging && draggedIndex == i);
 
-                // Visual depth ordering
+                // Visual depth ordering within cardsLayer
                 if (transformData.State == CardInteractionState.Dragged)
                 {
                     card.BringToFront();
@@ -357,7 +374,7 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
             return new CardData(null, rank, suit);
         }
 
-        // --- Pointer Event Handlers ---
+        // --- Pointer & Mouse Event Handlers ---
 
         internal void OnSlotPointerEnter(int slotIndex)
         {
@@ -365,17 +382,23 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
             if (slotIndex >= 0 && slotIndex < cardElements.Count)
             {
                 hoveredIndex = slotIndex;
-                onCardHovered?.Invoke(cardsData[slotIndex]);
+                if (slotIndex < cardsData.Count)
+                {
+                    onCardHovered?.Invoke(cardsData[slotIndex]);
+                }
             }
         }
 
-        internal void OnSlotPointerMove(int slotIndex, PointerMoveEvent evt)
+        internal void OnSlotPointerMove(int slotIndex, Vector2 pointerPos)
         {
             if (isDragging) return;
             if (slotIndex >= 0 && slotIndex < cardElements.Count && hoveredIndex != slotIndex)
             {
                 hoveredIndex = slotIndex;
-                onCardHovered?.Invoke(cardsData[slotIndex]);
+                if (slotIndex < cardsData.Count)
+                {
+                    onCardHovered?.Invoke(cardsData[slotIndex]);
+                }
             }
         }
 
@@ -390,36 +413,43 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
             }
         }
 
-        internal void OnSlotPointerDown(int slotIndex, PointerDownEvent evt)
+        internal void OnSlotPointerDown(int slotIndex, int pointerId, Vector2 pointerPos)
         {
             if (slotIndex < 0 || slotIndex >= cardElements.Count) return;
 
             isDragging = true;
             draggedIndex = slotIndex;
             dragTargetIndex = slotIndex;
-            activePointerId = evt.pointerId;
+            activePointerId = pointerId;
 
             var metrics = CardHandLayoutEngine.ComputeHandMetrics(cardElements.Count, settings, slotIndex);
             initialDragX = CardHandLayoutEngine.GetSlotXPos(slotIndex, metrics, settings);
             dragOffset = Vector2.zero;
-            dragStartPointerPos = evt.position;
+            dragStartPointerPos = pointerPos;
 
             hoveredIndex = null;
 
             // Capture pointer on slotsLayer for smooth drag tracking
-            slotsLayer?.CapturePointer(evt.pointerId);
-            onCardClicked?.Invoke(cardsData[slotIndex]);
+            if (slotsLayer != null && pointerId != -1)
+            {
+                try { slotsLayer.CapturePointer(pointerId); } catch { }
+            }
+
+            if (slotIndex < cardsData.Count)
+            {
+                onCardClicked?.Invoke(cardsData[slotIndex]);
+            }
         }
 
-        private void OnGlobalPointerMove(PointerMoveEvent evt)
+        private void OnGlobalPointerMove(Vector2 pointerPos)
         {
-            if (!isDragging || evt.pointerId != activePointerId) return;
+            if (!isDragging) return;
 
-            Vector2 delta = (Vector2)evt.position - dragStartPointerPos;
+            Vector2 delta = pointerPos - dragStartPointerPos;
             dragOffset = new Vector2(delta.x, -delta.y); // Invert Y for UI Toolkit top-down coords
 
             float containerCenter = handRoot.resolvedStyle.width > 0f ? handRoot.resolvedStyle.width * 0.5f : Screen.width * 0.5f;
-            float currentPointerX = evt.position.x - containerCenter;
+            float currentPointerX = pointerPos.x - containerCenter;
 
             var metrics = CardHandLayoutEngine.ComputeHandMetrics(cardElements.Count, settings, dragTargetIndex);
             int closestSlot = CardHandLayoutEngine.FindClosestSlotIndex(currentPointerX, metrics, settings);
@@ -430,22 +460,20 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
             }
         }
 
-        private void OnGlobalPointerUp(PointerUpEvent evt)
-        {
-            if (!isDragging || evt.pointerId != activePointerId) return;
-            FinishDrag();
-        }
-
-        private void OnGlobalPointerCaptureOut(PointerCaptureOutEvent evt)
-        {
-            if (isDragging) FinishDrag();
-        }
-
         private void FinishDrag()
         {
-            if (slotsLayer != null && activePointerId != -1 && slotsLayer.HasPointerCapture(activePointerId))
+            if (!isDragging) return;
+
+            if (slotsLayer != null && activePointerId != -1)
             {
-                slotsLayer.ReleasePointer(activePointerId);
+                try
+                {
+                    if (slotsLayer.HasPointerCapture(activePointerId))
+                    {
+                        slotsLayer.ReleasePointer(activePointerId);
+                    }
+                }
+                catch { }
             }
 
             int src = draggedIndex ?? -1;
