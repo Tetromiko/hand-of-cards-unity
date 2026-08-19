@@ -53,6 +53,30 @@ namespace Tetromiko.CardsHandLayout.Editor
             Selection.activeObject = handObj;
         }
 
+        [MenuItem("GameObject/UI/Cards Hand Web-Clone Demo (Tetromiko)", false, 11)]
+        [MenuItem("Tools/Tetromiko/Setup Web-Style Demo Scene")]
+        public static void CreateCompleteWebDemoScene()
+        {
+            var demoType = System.Type.GetType("Tetromiko.CardsHandLayout.Samples.CardHandDemoController, Assembly-CSharp")
+                ?? System.Type.GetType("Tetromiko.CardsHandLayout.Samples.CardHandDemoController, com.tetromiko.cardshandlayout")
+                ?? System.Type.GetType("Tetromiko.CardsHandLayout.Samples.CardHandDemoController");
+
+            var demoObj = new GameObject("WebStyleCardDemo");
+            if (demoType != null)
+            {
+                var comp = demoObj.AddComponent(demoType);
+                var method = demoType.GetMethod("BuildCompleteDemoUI");
+                if (method != null) method.Invoke(comp, null);
+            }
+            else
+            {
+                CreateCardHandInHierarchy(new MenuCommand(null));
+            }
+
+            Undo.RegisterCreatedObjectUndo(demoObj, "Create Web Style Card Demo");
+            Selection.activeObject = demoObj;
+        }
+
         public override void OnInspectorGUI()
         {
             CardHandController controller = (CardHandController)target;

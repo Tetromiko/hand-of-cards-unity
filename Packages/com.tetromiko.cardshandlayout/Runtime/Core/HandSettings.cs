@@ -44,7 +44,13 @@ namespace Tetromiko.CardsHandLayout
         [Tooltip("Maximum movement speed.")]
         public float maxSpeed = 3000f;
 
-        [Header("Visual Debug")]
+        [Header("Visual Debug & Details")]
+        [Tooltip("Display blueprint overlay brackets and card index markers.")]
+        public bool showLayoutDetails = true;
+
+        [Tooltip("Pixel art crisp rendering mode.")]
+        public bool pixelArt = false;
+
         [Tooltip("Draw gizmo debug lines for slots and hand bounds in Scene view.")]
         public bool drawGizmos = true;
 
@@ -63,6 +69,8 @@ namespace Tetromiko.CardsHandLayout
                 dragScale = 1.1f,
                 smoothTime = 0.08f,
                 maxSpeed = 3000f,
+                showLayoutDetails = true,
+                pixelArt = false,
                 drawGizmos = true
             };
         }

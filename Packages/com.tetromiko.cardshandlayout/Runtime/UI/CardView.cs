@@ -23,14 +23,19 @@ namespace Tetromiko.CardsHandLayout
         [SerializeField] private TextMeshProUGUI suitTextTop;
         [SerializeField] private TextMeshProUGUI suitTextBottom;
         [SerializeField] private TextMeshProUGUI centerSuitText;
+        [SerializeField] private TextMeshProUGUI centerIndexText;
         [SerializeField] private TextMeshProUGUI titleText;
         [SerializeField] private CanvasGroup canvasGroup;
+
+        [Header("Blueprint Corner Ticks")]
+        [SerializeField] private Image[] cornerTicks;
 
         [Header("State")]
         private CardData cardData;
         private RectTransform rectTransform;
         private CardHandController controller;
         private int currentIndex;
+        private CardInteractionState visualState = CardInteractionState.Idle;
 
         // Motion smoothing
         private Vector2 targetPosition;
@@ -43,6 +48,7 @@ namespace Tetromiko.CardsHandLayout
         public CardData CardData => cardData;
         public int CurrentIndex => currentIndex;
         public bool IsBeingDragged => isBeingDragged;
+        public CardInteractionState VisualState => visualState;
 
         private void Awake()
         {
@@ -52,13 +58,32 @@ namespace Tetromiko.CardsHandLayout
 
         public void SetupProceduralHierarchy()
         {
-            var outline = gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(0.1f, 0.1f, 0.15f, 0.35f);
-            outline.effectDistance = new Vector2(2f, -2f);
+            // Background Image - Dark Slate #020617
+            backgroundImage = GetComponent<Image>();
+            if (backgroundImage != null)
+            {
+                backgroundImage.color = new Color(0.02f, 0.04f, 0.09f, 0.96f);
+            }
 
-            var shadow = gameObject.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0f, 0f, 0f, 0.15f);
-            shadow.effectDistance = new Vector2(4f, -6f);
+            // Outline / Border
+            var outline = GetComponent<Outline>();
+            if (outline == null) outline = gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0.12f, 0.16f, 0.25f, 0.8f);
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            // Center Index Text (for Layout Details mode)
+            var indexObj = new GameObject("CenterIndexText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            indexObj.transform.SetParent(transform, false);
+            var indexRt = indexObj.GetComponent<RectTransform>();
+            indexRt.anchorMin = Vector2.zero;
+            indexRt.anchorMax = Vector2.one;
+            indexRt.sizeDelta = Vector2.zero;
+
+            centerIndexText = indexObj.GetComponent<TextMeshProUGUI>();
+            centerIndexText.fontSize = 28;
+            centerIndexText.fontStyle = FontStyles.Bold;
+            centerIndexText.alignment = TextAlignmentOptions.Center;
+            centerIndexText.color = new Color(0.75f, 0.8f, 0.9f, 1f);
 
             // Top-left rank & suit
             var topTextObj = new GameObject("TopCornerText", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -67,11 +92,11 @@ namespace Tetromiko.CardsHandLayout
             topRt.anchorMin = new Vector2(0f, 1f);
             topRt.anchorMax = new Vector2(0f, 1f);
             topRt.pivot = new Vector2(0f, 1f);
-            topRt.anchoredPosition = new Vector2(10f, -8f);
-            topRt.sizeDelta = new Vector2(40f, 40f);
+            topRt.anchoredPosition = new Vector2(8f, -6f);
+            topRt.sizeDelta = new Vector2(50f, 30f);
 
             rankTextTop = topTextObj.GetComponent<TextMeshProUGUI>();
-            rankTextTop.fontSize = 20;
+            rankTextTop.fontSize = 16;
             rankTextTop.fontStyle = FontStyles.Bold;
             rankTextTop.alignment = TextAlignmentOptions.TopLeft;
 
@@ -83,26 +108,64 @@ namespace Tetromiko.CardsHandLayout
             centerRt.anchorMax = new Vector2(0.5f, 0.5f);
             centerRt.pivot = new Vector2(0.5f, 0.5f);
             centerRt.anchoredPosition = Vector2.zero;
-            centerRt.sizeDelta = new Vector2(80f, 80f);
+            centerRt.sizeDelta = new Vector2(70f, 70f);
 
             centerSuitText = centerObj.GetComponent<TextMeshProUGUI>();
-            centerSuitText.fontSize = 42;
+            centerSuitText.fontSize = 38;
             centerSuitText.alignment = TextAlignmentOptions.Center;
 
-            // Bottom title
-            var bottomObj = new GameObject("TitleText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            // Bottom rotated rank
+            var bottomObj = new GameObject("BottomCornerText", typeof(RectTransform), typeof(TextMeshProUGUI));
             bottomObj.transform.SetParent(transform, false);
             var bottomRt = bottomObj.GetComponent<RectTransform>();
-            bottomRt.anchorMin = new Vector2(0f, 0f);
+            bottomRt.anchorMin = new Vector2(1f, 0f);
             bottomRt.anchorMax = new Vector2(1f, 0f);
-            bottomRt.pivot = new Vector2(0.5f, 0f);
-            bottomRt.anchoredPosition = new Vector2(0f, 8f);
-            bottomRt.sizeDelta = new Vector2(0f, 24f);
+            bottomRt.pivot = new Vector2(1f, 0f);
+            bottomRt.anchoredPosition = new Vector2(-8f, 6f);
+            bottomRt.sizeDelta = new Vector2(50f, 30f);
+            bottomRt.localEulerAngles = new Vector3(0f, 0f, 180f);
 
-            titleText = bottomObj.GetComponent<TextMeshProUGUI>();
-            titleText.fontSize = 12;
-            titleText.alignment = TextAlignmentOptions.Center;
-            titleText.color = new Color(0.3f, 0.3f, 0.35f, 1f);
+            rankTextBottom = bottomObj.GetComponent<TextMeshProUGUI>();
+            rankTextBottom.fontSize = 16;
+            rankTextBottom.fontStyle = FontStyles.Bold;
+            rankTextBottom.alignment = TextAlignmentOptions.TopLeft;
+
+            // Create Corner Ticks
+            CreateCornerTicks();
+        }
+
+        private void CreateCornerTicks()
+        {
+            cornerTicks = new Image[4];
+            Vector2[] anchors = {
+                new Vector2(0f, 1f), // Top-Left
+                new Vector2(1f, 1f), // Top-Right
+                new Vector2(0f, 0f), // Bottom-Left
+                new Vector2(1f, 0f)  // Bottom-Right
+            };
+            Vector2[] pivots = {
+                new Vector2(0f, 1f),
+                new Vector2(1f, 1f),
+                new Vector2(0f, 0f),
+                new Vector2(1f, 0f)
+            };
+
+            for (int i = 0; i < 4; i++)
+            {
+                var tickObj = new GameObject($"Tick_{i}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                tickObj.transform.SetParent(transform, false);
+                var rt = tickObj.GetComponent<RectTransform>();
+                rt.anchorMin = anchors[i];
+                rt.anchorMax = anchors[i];
+                rt.pivot = pivots[i];
+                rt.anchoredPosition = Vector2.zero;
+                rt.sizeDelta = new Vector2(12f, 12f);
+
+                var img = tickObj.GetComponent<Image>();
+                img.color = new Color(0.4f, 0.5f, 0.65f, 0.8f);
+                img.raycastTarget = false;
+                cornerTicks[i] = img;
+            }
         }
 
         public void Initialize(CardData data, CardHandController handController, int index)
@@ -116,57 +179,88 @@ namespace Tetromiko.CardsHandLayout
         public void SetIndex(int index)
         {
             this.currentIndex = index;
+            UpdateVisuals();
+        }
+
+        public void SetVisualState(CardInteractionState state)
+        {
+            this.visualState = state;
+            UpdateStateColors();
+        }
+
+        public void UpdateStateColors()
+        {
+            Color tickColor = new Color(0.4f, 0.5f, 0.65f, 0.7f); // Slate Idle
+            Color textColor = new Color(0.75f, 0.8f, 0.9f, 1f);
+
+            if (visualState == CardInteractionState.Dragged)
+            {
+                tickColor = new Color(0.2f, 0.9f, 0.5f, 1f); // Emerald
+                textColor = new Color(0.2f, 0.9f, 0.5f, 1f);
+            }
+            else if (visualState == CardInteractionState.Hovered)
+            {
+                tickColor = new Color(0.95f, 0.35f, 0.65f, 1f); // Pink
+                textColor = new Color(0.95f, 0.35f, 0.65f, 1f);
+            }
+
+            if (cornerTicks != null)
+            {
+                foreach (var tick in cornerTicks)
+                {
+                    if (tick != null) tick.color = tickColor;
+                }
+            }
+
+            if (centerIndexText != null)
+            {
+                centerIndexText.color = textColor;
+            }
         }
 
         public void UpdateVisuals()
         {
             if (cardData == null) return;
 
+            bool showLayoutDetails = controller != null && controller.Settings.showLayoutDetails;
+
             Color suitColor = cardData.GetSuitColor();
             string suitSymbol = cardData.GetSuitSymbol();
 
-            if (cardArtImage != null)
+            if (centerIndexText != null)
             {
-                if (cardData.cardSprite != null)
+                centerIndexText.text = $"#{currentIndex}";
+                centerIndexText.gameObject.SetActive(showLayoutDetails);
+            }
+
+            if (cornerTicks != null)
+            {
+                foreach (var tick in cornerTicks)
                 {
-                    cardArtImage.sprite = cardData.cardSprite;
-                    cardArtImage.gameObject.SetActive(true);
-                }
-                else
-                {
-                    cardArtImage.gameObject.SetActive(false);
+                    if (tick != null) tick.gameObject.SetActive(showLayoutDetails);
                 }
             }
 
             if (rankTextTop != null)
             {
-                rankTextTop.text = cardData.rank;
+                rankTextTop.text = $"{cardData.rank} {suitSymbol}";
                 rankTextTop.color = suitColor;
+                rankTextTop.gameObject.SetActive(!showLayoutDetails);
             }
             if (rankTextBottom != null)
             {
-                rankTextBottom.text = cardData.rank;
+                rankTextBottom.text = $"{cardData.rank} {suitSymbol}";
                 rankTextBottom.color = suitColor;
-            }
-            if (suitTextTop != null)
-            {
-                suitTextTop.text = suitSymbol;
-                suitTextTop.color = suitColor;
-            }
-            if (suitTextBottom != null)
-            {
-                suitTextBottom.text = suitSymbol;
-                suitTextBottom.color = suitColor;
+                rankTextBottom.gameObject.SetActive(!showLayoutDetails);
             }
             if (centerSuitText != null)
             {
                 centerSuitText.text = suitSymbol;
-                centerSuitText.color = new Color(suitColor.r, suitColor.g, suitColor.b, 0.4f);
+                centerSuitText.color = new Color(suitColor.r, suitColor.g, suitColor.b, 0.7f);
+                centerSuitText.gameObject.SetActive(!showLayoutDetails);
             }
-            if (titleText != null)
-            {
-                titleText.text = cardData.title;
-            }
+
+            UpdateStateColors();
         }
 
         public void SetTargetTransform(Vector2 localPos, float scale, float smoothTime, float maxSpeed)

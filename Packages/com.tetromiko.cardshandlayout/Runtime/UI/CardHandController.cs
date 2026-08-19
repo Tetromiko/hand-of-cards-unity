@@ -118,6 +118,8 @@ namespace Tetromiko.CardsHandLayout
                     settings.maxSpeed
                 );
 
+                cardView.SetVisualState(transformData.State);
+
                 // Set hierarchy depth ordering
                 if (transformData.State == CardInteractionState.Dragged)
                 {
