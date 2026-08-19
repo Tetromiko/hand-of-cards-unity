@@ -86,18 +86,18 @@ namespace Tetromiko.CardsHandLayout.Samples
                 scaler.matchWidthOrHeight = 0.5f;
             }
 
-            // Dark Backdrop - Slate 950 (#020617)
+            // Backdrop
             var backdrop = canvas.GetComponentInChildren<Image>();
             if (backdrop == null)
             {
-                var bgObj = new GameObject("DarkBackdrop", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                var bgObj = new GameObject("Backdrop", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
                 bgObj.transform.SetParent(canvas.transform, false);
                 bgObj.transform.SetAsFirstSibling();
                 var bgRt = bgObj.GetComponent<RectTransform>();
                 bgRt.anchorMin = Vector2.zero;
                 bgRt.anchorMax = Vector2.one;
                 bgRt.sizeDelta = Vector2.zero;
-                bgObj.GetComponent<Image>().color = new Color(0.012f, 0.024f, 0.055f, 1f);
+                bgObj.GetComponent<Image>().color = new Color(0.12f, 0.12f, 0.14f, 1f);
             }
 
             // Create Hand Controller Container

@@ -11,20 +11,11 @@ namespace Tetromiko.CardsHandLayout.Samples
         [Header("Controller Reference")]
         [SerializeField] private CardHandController handController;
 
-        [Header("Optional Icons / Sprites (Leave empty for default placeholders)")]
-        [Tooltip("Icon for '+ Add Card' button. If empty, Image component remains blank ready for sprite assignment.")]
+        [Header("Optional Icons (Leave empty to use standard text)")]
         [SerializeField] private Sprite iconAdd;
-
-        [Tooltip("Icon for '− Remove Card' button. If empty, Image component remains blank ready for sprite assignment.")]
         [SerializeField] private Sprite iconRemove;
-
-        [Tooltip("Icon for 'Reset Hand' button. If empty, Image component remains blank ready for sprite assignment.")]
         [SerializeField] private Sprite iconReset;
-
-        [Tooltip("Icon for 'Minimize Panel' button. If empty, Image component remains blank ready for sprite assignment.")]
         [SerializeField] private Sprite iconMinimize;
-
-        [Tooltip("Icon for 'Expand Panel' button. If empty, Image component remains blank ready for sprite assignment.")]
         [SerializeField] private Sprite iconExpand;
 
         // Runtime References
@@ -38,20 +29,16 @@ namespace Tetromiko.CardsHandLayout.Samples
         private TextMeshProUGUI miniCountText;
         private TextMeshProUGUI countText;
         private Button minButton;
+        private TextMeshProUGUI minButtonText;
         private Image minButtonIconImage;
+
         private Button addCardBtn;
-        private Image addCardIconImage;
         private Button removeCardBtn;
-        private Image removeCardIconImage;
         private Button resetHandBtn;
-        private Image resetHandIconImage;
 
         private Button miniAddCardBtn;
-        private Image miniAddCardIconImage;
         private Button miniRemoveCardBtn;
-        private Image miniRemoveCardIconImage;
         private Button miniResetHandBtn;
-        private Image miniResetHandIconImage;
 
         // Sliders & Number Input Pairs
         private Slider cardWidthSlider;
@@ -126,7 +113,7 @@ namespace Tetromiko.CardsHandLayout.Samples
                 else DestroyImmediate(child);
             }
 
-            // 1. Root Panel RectTransform & Layout
+            // 1. Root Panel (Standard Unity Panel)
             panelRt = GetComponent<RectTransform>();
             if (panelRt == null) panelRt = gameObject.AddComponent<RectTransform>();
 
@@ -134,11 +121,11 @@ namespace Tetromiko.CardsHandLayout.Samples
             panelRt.anchorMax = new Vector2(0f, 1f);
             panelRt.pivot = new Vector2(0f, 1f);
             panelRt.anchoredPosition = new Vector2(16f, -16f);
-            panelRt.sizeDelta = new Vector2(340f, 0f);
+            panelRt.sizeDelta = new Vector2(320f, 0f);
 
             var rootLayout = GetComponent<VerticalLayoutGroup>();
             if (rootLayout == null) rootLayout = gameObject.AddComponent<VerticalLayoutGroup>();
-            rootLayout.padding = new RectOffset(12, 12, 12, 12);
+            rootLayout.padding = new RectOffset(10, 10, 10, 10);
             rootLayout.spacing = 8f;
             rootLayout.childControlWidth = true;
             rootLayout.childControlHeight = true;
@@ -152,12 +139,7 @@ namespace Tetromiko.CardsHandLayout.Samples
 
             var bgImg = GetComponent<Image>();
             if (bgImg == null) bgImg = gameObject.AddComponent<Image>();
-            bgImg.color = new Color(0.04f, 0.06f, 0.10f, 0.96f);
-
-            var outline = GetComponent<Outline>();
-            if (outline == null) outline = gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(0.15f, 0.20f, 0.30f, 0.9f);
-            outline.effectDistance = new Vector2(1f, -1f);
+            bgImg.color = new Color(0.18f, 0.18f, 0.20f, 0.95f);
 
             // 2. Header Bar
             BuildHeaderBar();
@@ -180,15 +162,13 @@ namespace Tetromiko.CardsHandLayout.Samples
             hGroup.childForceExpandHeight = true;
             hGroup.childAlignment = TextAnchor.MiddleLeft;
 
-            // Title Label
-            var title = CreateText(headerObj.transform, "Title", "ПАНЕЛЬ КЕРУВАННЯ", 11, FontStyles.Bold, new Color(0.85f, 0.90f, 0.96f, 1f), TextAlignmentOptions.MidlineLeft);
-            var titleLe = title.gameObject.AddComponent<LayoutElement>();
-            titleLe.flexibleWidth = 1f;
+            // Title
+            var title = CreateText(headerObj.transform, "Title", "Панель керування", 13, FontStyles.Bold, Color.white, TextAlignmentOptions.MidlineLeft);
+            title.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-            // Card Count Badge
+            // Count Badge
             var badgeObj = CreateLayoutObject("CountBadge", headerObj.transform, 22f);
-            var badgeBg = badgeObj.AddComponent<Image>();
-            badgeBg.color = new Color(0.10f, 0.14f, 0.22f, 1f);
+            badgeObj.AddComponent<Image>().color = new Color(0.28f, 0.28f, 0.32f, 1f);
             var badgeLayout = badgeObj.AddComponent<HorizontalLayoutGroup>();
             badgeLayout.padding = new RectOffset(6, 6, 2, 2);
             badgeLayout.childControlWidth = true;
@@ -197,31 +177,40 @@ namespace Tetromiko.CardsHandLayout.Samples
             badgeLayout.childForceExpandHeight = true;
             badgeObj.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            headerCountText = CreateText(badgeObj.transform, "Text", "5 шт.", 10, FontStyles.Normal, new Color(0.55f, 0.65f, 0.80f, 1f), TextAlignmentOptions.Center);
+            headerCountText = CreateText(badgeObj.transform, "Text", "5 шт.", 11, FontStyles.Normal, Color.white, TextAlignmentOptions.Center);
 
-            // Minimize / Expand Toggle Button
-            minButton = CreateIconButton(headerObj.transform, "MinButton", new Vector2(24f, 24f), new Color(0.10f, 0.14f, 0.22f, 1f), iconMinimize, out minButtonIconImage);
+            // Minimize / Expand Button
+            minButton = CreateButton(headerObj.transform, "MinButton", "_", new Vector2(24f, 24f), new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 12f);
+            minButtonText = minButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (iconMinimize != null)
+            {
+                var iconObj = new GameObject("Icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                iconObj.transform.SetParent(minButton.transform, false);
+                minButtonIconImage = iconObj.GetComponent<Image>();
+                minButtonIconImage.sprite = iconMinimize;
+                minButtonIconImage.raycastTarget = false;
+                if (minButtonText != null) minButtonText.gameObject.SetActive(false);
+            }
         }
 
         private void BuildMinimizedRoot()
         {
-            minimizedRoot = CreateLayoutObject("MinimizedRoot", transform, 32f);
+            minimizedRoot = CreateLayoutObject("MinimizedRoot", transform, 30f);
             var hGroup = minimizedRoot.AddComponent<HorizontalLayoutGroup>();
-            hGroup.spacing = 8f;
+            hGroup.spacing = 6f;
             hGroup.childControlWidth = false;
             hGroup.childControlHeight = true;
             hGroup.childForceExpandWidth = false;
             hGroup.childForceExpandHeight = true;
             hGroup.childAlignment = TextAnchor.MiddleCenter;
 
-            miniRemoveCardBtn = CreateIconButton(minimizedRoot.transform, "MiniRemove", new Vector2(30f, 30f), new Color(0.12f, 0.16f, 0.25f, 1f), iconRemove, out miniRemoveCardIconImage);
-            miniCountText = CreateText(minimizedRoot.transform, "MiniCount", "5", 12, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
-            miniCountText.gameObject.AddComponent<LayoutElement>().preferredWidth = 32f;
-            miniAddCardBtn = CreateIconButton(minimizedRoot.transform, "MiniAdd", new Vector2(30f, 30f), new Color(0.12f, 0.16f, 0.25f, 1f), iconAdd, out miniAddCardIconImage);
+            miniRemoveCardBtn = CreateButton(minimizedRoot.transform, "MiniRemove", "−", new Vector2(28f, 28f), new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 14f);
+            miniCountText = CreateText(minimizedRoot.transform, "MiniCount", "5", 13, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
+            miniCountText.gameObject.AddComponent<LayoutElement>().preferredWidth = 36f;
+            miniAddCardBtn = CreateButton(minimizedRoot.transform, "MiniAdd", "+", new Vector2(28f, 28f), new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 14f);
 
-            miniResetHandBtn = CreateButton(minimizedRoot.transform, "MiniReset", "Скинути", new Vector2(80f, 30f), new Color(0.12f, 0.16f, 0.25f, 1f), new Color(0.75f, 0.82f, 0.92f, 1f), 10f);
-            var resetLe = miniResetHandBtn.gameObject.AddComponent<LayoutElement>();
-            resetLe.flexibleWidth = 1f;
+            miniResetHandBtn = CreateButton(minimizedRoot.transform, "MiniReset", "Скинути", new Vector2(70f, 28f), new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 11f);
+            miniResetHandBtn.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
             minimizedRoot.SetActive(false);
         }
@@ -230,31 +219,26 @@ namespace Tetromiko.CardsHandLayout.Samples
         {
             contentRoot = CreateLayoutObject("ContentRoot", transform, -1f);
             var vGroup = contentRoot.AddComponent<VerticalLayoutGroup>();
-            vGroup.spacing = 8f;
+            vGroup.spacing = 6f;
             vGroup.childControlWidth = true;
             vGroup.childControlHeight = true;
             vGroup.childForceExpandWidth = true;
             vGroup.childForceExpandHeight = false;
 
-            var fitter = contentRoot.AddComponent<ContentSizeFitter>();
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            contentRoot.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            // 1. Top Buttons Bar [ - 5 + ] [ Скинути руку ]
-            var topBar = CreateLayoutObject("TopBar", contentRoot.transform, 30f);
+            // 1. Actions Bar [ − 5 + ] [ Скинути руку ]
+            var topBar = CreateLayoutObject("TopBar", contentRoot.transform, 28f);
             var topBarH = topBar.AddComponent<HorizontalLayoutGroup>();
-            topBarH.spacing = 8f;
+            topBarH.spacing = 6f;
             topBarH.childControlWidth = false;
             topBarH.childControlHeight = true;
             topBarH.childForceExpandWidth = false;
             topBarH.childForceExpandHeight = true;
 
             // Counter Box
-            var counterBox = CreateLayoutObject("CounterBox", topBar.transform, 30f);
-            counterBox.AddComponent<Image>().color = new Color(0.08f, 0.11f, 0.18f, 1f);
-            var cbOutline = counterBox.AddComponent<Outline>();
-            cbOutline.effectColor = new Color(0.16f, 0.22f, 0.32f, 0.8f);
-            cbOutline.effectDistance = new Vector2(1f, -1f);
-
+            var counterBox = CreateLayoutObject("CounterBox", topBar.transform, 28f);
+            counterBox.AddComponent<Image>().color = new Color(0.24f, 0.24f, 0.27f, 1f);
             var cbLayout = counterBox.AddComponent<HorizontalLayoutGroup>();
             cbLayout.padding = new RectOffset(2, 2, 2, 2);
             cbLayout.spacing = 2f;
@@ -262,58 +246,50 @@ namespace Tetromiko.CardsHandLayout.Samples
             cbLayout.childControlHeight = true;
             cbLayout.childForceExpandWidth = false;
             cbLayout.childForceExpandHeight = true;
-            var cbLe = counterBox.AddComponent<LayoutElement>();
-            cbLe.preferredWidth = 110f;
+            counterBox.AddComponent<LayoutElement>().preferredWidth = 100f;
 
-            removeCardBtn = CreateIconButton(counterBox.transform, "RemoveBtn", new Vector2(28f, 26f), Color.clear, iconRemove, out removeCardIconImage);
+            removeCardBtn = CreateButton(counterBox.transform, "RemoveBtn", "−", new Vector2(26f, 24f), new Color(0.32f, 0.32f, 0.36f, 1f), Color.white, 13f);
             countText = CreateText(counterBox.transform, "Count", "5", 12, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
-            countText.gameObject.AddComponent<LayoutElement>().preferredWidth = 46f;
-            addCardBtn = CreateIconButton(counterBox.transform, "AddBtn", new Vector2(28f, 26f), Color.clear, iconAdd, out addCardIconImage);
+            countText.gameObject.AddComponent<LayoutElement>().preferredWidth = 40f;
+            addCardBtn = CreateButton(counterBox.transform, "AddBtn", "+", new Vector2(26f, 24f), new Color(0.32f, 0.32f, 0.36f, 1f), Color.white, 13f);
 
             // Reset Button
-            resetHandBtn = CreateButton(topBar.transform, "ResetBtn", "СКИНУТИ РУКУ", new Vector2(0f, 30f), new Color(0.08f, 0.11f, 0.18f, 1f), new Color(0.70f, 0.76f, 0.88f, 1f), 10f);
-            var resetLe = resetHandBtn.gameObject.AddComponent<LayoutElement>();
-            resetLe.flexibleWidth = 1f;
+            resetHandBtn = CreateButton(topBar.transform, "ResetBtn", "Скинути руку", new Vector2(0f, 28f), new Color(0.28f, 0.28f, 0.32f, 1f), Color.white, 11f);
+            resetHandBtn.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-            // 2. Category 1: Card & Hand Geometry (Cyan Accents)
-            var cat1 = CreateSectionCard("Cat1_Geometry", contentRoot.transform, new Color(0.03f, 0.10f, 0.15f, 0.40f), new Color(0.10f, 0.35f, 0.45f, 0.6f));
-            CreateSliderRow(cat1.transform, "Ширина карти (W)", new Color(0.25f, 0.85f, 0.95f, 1f), 60f, 200f, 112f, out cardWidthSlider, out cardWidthInput);
-            CreateDivider(cat1.transform, new Color(0.10f, 0.35f, 0.45f, 0.3f));
-            CreateSliderRow(cat1.transform, "Ширина руки", new Color(0.25f, 0.85f, 0.95f, 1f), 300f, 1400f, 680f, out handWidthSlider, out handWidthInput);
+            CreateDivider(contentRoot.transform);
 
-            // 3. Category 2: Distance & Step Compression (Slate Accents)
-            var cat2 = CreateSectionCard("Cat2_Distance", contentRoot.transform, new Color(0.06f, 0.08f, 0.13f, 0.50f), new Color(0.18f, 0.24f, 0.35f, 0.7f));
-            CreateSliderRow(cat2.transform, "Відстань (step)", new Color(0.78f, 0.84f, 0.92f, 1f), 24f, 220f, 56f, out cardDistSlider, out cardDistInput);
-            CreateDivider(cat2.transform, new Color(0.18f, 0.24f, 0.35f, 0.3f));
-            CreateSliderRow(cat2.transform, "Мін. відстань", new Color(0.78f, 0.84f, 0.92f, 1f), 4f, 100f, 24f, out minCardDistSlider, out minCardDistInput);
+            // 2. Sliders
+            CreateSliderRow(contentRoot.transform, "Ширина карти", 60f, 200f, 112f, out cardWidthSlider, out cardWidthInput);
+            CreateSliderRow(contentRoot.transform, "Ширина руки", 300f, 1400f, 680f, out handWidthSlider, out handWidthInput);
+            CreateSliderRow(contentRoot.transform, "Відстань між картами", 24f, 220f, 56f, out cardDistSlider, out cardDistInput);
+            CreateSliderRow(contentRoot.transform, "Мінімальна відстань", 4f, 100f, 24f, out minCardDistSlider, out minCardDistInput);
+            CreateSliderRow(contentRoot.transform, "Відстань ховеру", 112f, 280f, 112f, out hoverDistSlider, out hoverDistInput);
+            CreateSliderRow(contentRoot.transform, "Підйом при ховері", 0f, 80f, 28f, out hoverLiftSlider, out hoverLiftInput);
 
-            // 4. Category 3: Hover Expansion & Lift (Pink Accents)
-            var cat3 = CreateSectionCard("Cat3_Hover", contentRoot.transform, new Color(0.14f, 0.04f, 0.10f, 0.40f), new Color(0.45f, 0.12f, 0.30f, 0.6f));
-            CreateSliderRow(cat3.transform, "Відстань ховеру (H)", new Color(0.95f, 0.45f, 0.72f, 1f), 112f, 280f, 112f, out hoverDistSlider, out hoverDistInput);
-            CreateDivider(cat3.transform, new Color(0.45f, 0.12f, 0.30f, 0.3f));
-            CreateSliderRow(cat3.transform, "Підйом (Lift)", new Color(0.95f, 0.45f, 0.72f, 1f), 0f, 80f, 28f, out hoverLiftSlider, out hoverLiftInput);
+            CreateDivider(contentRoot.transform);
 
-            // 5. Category 4: Extensions & Details Toggle
-            var cat4 = CreateSectionCard("Cat4_Extensions", contentRoot.transform, new Color(0.05f, 0.07f, 0.11f, 0.6f), new Color(0.14f, 0.18f, 0.26f, 0.8f));
-            var toggleRow = CreateLayoutObject("ToggleRow", cat4.transform, 28f);
+            // 3. Layout Details Toggle
+            var toggleRow = CreateLayoutObject("ToggleRow", contentRoot.transform, 26f);
             var trH = toggleRow.AddComponent<HorizontalLayoutGroup>();
-            trH.spacing = 8f;
+            trH.spacing = 6f;
             trH.childControlWidth = false;
             trH.childControlHeight = true;
             trH.childForceExpandWidth = false;
             trH.childForceExpandHeight = true;
             trH.childAlignment = TextAnchor.MiddleLeft;
 
-            var toggleLbl = CreateText(toggleRow.transform, "Label", "Деталі розмітки (Layout)", 11, FontStyles.Bold, new Color(0.82f, 0.87f, 0.94f, 1f), TextAlignmentOptions.MidlineLeft);
+            var toggleLbl = CreateText(toggleRow.transform, "Label", "Деталі розмітки", 12, FontStyles.Normal, Color.white, TextAlignmentOptions.MidlineLeft);
             toggleLbl.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-            layoutDetailsBtn = CreateButton(toggleRow.transform, "DetailsBtn", "[ УВІМКНЕНО ]", new Vector2(115f, 26f), new Color(0.06f, 0.18f, 0.24f, 1f), new Color(0.30f, 0.90f, 1f, 1f), 10f);
+            layoutDetailsBtn = CreateButton(toggleRow.transform, "DetailsBtn", "Увімкнено", new Vector2(100f, 24f), new Color(0.24f, 0.45f, 0.65f, 1f), Color.white, 11f);
             layoutDetailsBtnText = layoutDetailsBtn.GetComponentInChildren<TextMeshProUGUI>();
 
-            // 6. Telemetry Status Bar
-            var telBox = CreateSectionCard("Telemetry", contentRoot.transform, new Color(0.03f, 0.04f, 0.07f, 0.9f), new Color(0.12f, 0.16f, 0.24f, 0.9f));
-            var telRow = CreateLayoutObject("TelRow", telBox.transform, 20f);
+            // 4. Telemetry Row
+            var telRow = CreateLayoutObject("TelRow", contentRoot.transform, 22f);
+            telRow.AddComponent<Image>().color = new Color(0.14f, 0.14f, 0.16f, 1f);
             var telH = telRow.AddComponent<HorizontalLayoutGroup>();
+            telH.padding = new RectOffset(6, 6, 2, 2);
             telH.spacing = 6f;
             telH.childControlWidth = false;
             telH.childControlHeight = true;
@@ -321,13 +297,13 @@ namespace Tetromiko.CardsHandLayout.Samples
             telH.childForceExpandHeight = true;
             telH.childAlignment = TextAnchor.MiddleLeft;
 
-            telemetryStateText = CreateText(telRow.transform, "TelState", "Стан: Normal", 10, FontStyles.Bold, new Color(0.25f, 0.90f, 0.55f, 1f), TextAlignmentOptions.MidlineLeft);
-            telemetryStateText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1.2f;
+            telemetryStateText = CreateText(telRow.transform, "TelState", "Normal", 10, FontStyles.Bold, Color.white, TextAlignmentOptions.MidlineLeft);
+            telemetryStateText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-            telemetryStepText = CreateText(telRow.transform, "TelStep", "step: 56px", 10, FontStyles.Normal, new Color(0.70f, 0.76f, 0.86f, 1f), TextAlignmentOptions.Center);
+            telemetryStepText = CreateText(telRow.transform, "TelStep", "step: 56px", 10, FontStyles.Normal, Color.white * 0.8f, TextAlignmentOptions.Center);
             telemetryStepText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-            telemetryHStepText = CreateText(telRow.transform, "TelHStep", "h-step: 112px", 10, FontStyles.Bold, new Color(0.95f, 0.45f, 0.72f, 1f), TextAlignmentOptions.MidlineRight);
+            telemetryHStepText = CreateText(telRow.transform, "TelHStep", "h-step: 112px", 10, FontStyles.Normal, Color.white * 0.8f, TextAlignmentOptions.MidlineRight);
             telemetryHStepText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
         }
 
@@ -344,55 +320,30 @@ namespace Tetromiko.CardsHandLayout.Samples
             return obj;
         }
 
-        private GameObject CreateSectionCard(string name, Transform parent, Color bg, Color border)
-        {
-            var card = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            card.transform.SetParent(parent, false);
-            card.GetComponent<Image>().color = bg;
-
-            var outline = card.AddComponent<Outline>();
-            outline.effectColor = border;
-            outline.effectDistance = new Vector2(1f, -1f);
-
-            var vGroup = card.AddComponent<VerticalLayoutGroup>();
-            vGroup.padding = new RectOffset(10, 10, 8, 8);
-            vGroup.spacing = 6f;
-            vGroup.childControlWidth = true;
-            vGroup.childControlHeight = true;
-            vGroup.childForceExpandWidth = true;
-            vGroup.childForceExpandHeight = false;
-
-            var fitter = card.AddComponent<ContentSizeFitter>();
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            return card;
-        }
-
-        private void CreateDivider(Transform parent, Color color)
+        private void CreateDivider(Transform parent)
         {
             var div = new GameObject("Divider", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             div.transform.SetParent(parent, false);
-            div.GetComponent<Image>().color = color;
+            div.GetComponent<Image>().color = new Color(0.28f, 0.28f, 0.32f, 0.6f);
             var le = div.AddComponent<LayoutElement>();
             le.preferredHeight = 1f;
             le.minHeight = 1f;
         }
 
-        private void CreateSliderRow(Transform parent, string label, Color accentColor, float min, float max, float defaultVal, out Slider slider, out TMP_InputField inputField)
+        private void CreateSliderRow(Transform parent, string label, float min, float max, float defaultVal, out Slider slider, out TMP_InputField inputField)
         {
             var row = CreateLayoutObject("SliderRow_" + label, parent, -1f);
             var vGroup = row.AddComponent<VerticalLayoutGroup>();
-            vGroup.spacing = 3f;
+            vGroup.spacing = 2f;
             vGroup.childControlWidth = true;
             vGroup.childControlHeight = true;
             vGroup.childForceExpandWidth = true;
             vGroup.childForceExpandHeight = false;
 
-            var fitter = row.AddComponent<ContentSizeFitter>();
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            row.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            // Row 1: Header [ Label (flex) | InputField (56px) | Unit (18px) ]
-            var header = CreateLayoutObject("Header", row.transform, 20f);
+            // Row 1: Header [ Label | InputField | px ]
+            var header = CreateLayoutObject("Header", row.transform, 18f);
             var hGroup = header.AddComponent<HorizontalLayoutGroup>();
             hGroup.spacing = 4f;
             hGroup.childControlWidth = false;
@@ -401,19 +352,16 @@ namespace Tetromiko.CardsHandLayout.Samples
             hGroup.childForceExpandHeight = true;
             hGroup.childAlignment = TextAnchor.MiddleLeft;
 
-            var lbl = CreateText(header.transform, "Label", label, 11, FontStyles.Bold, accentColor, TextAlignmentOptions.MidlineLeft);
+            var lbl = CreateText(header.transform, "Label", label, 11, FontStyles.Normal, Color.white, TextAlignmentOptions.MidlineLeft);
             lbl.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
             // Value Input Field
-            var inputObj = CreateLayoutObject("Input", header.transform, 20f);
-            inputObj.AddComponent<Image>().color = new Color(0.06f, 0.08f, 0.12f, 1f);
-            var inOutline = inputObj.AddComponent<Outline>();
-            inOutline.effectColor = new Color(accentColor.r, accentColor.g, accentColor.b, 0.4f);
-            inOutline.effectDistance = new Vector2(1f, -1f);
+            var inputObj = CreateLayoutObject("Input", header.transform, 18f);
+            inputObj.AddComponent<Image>().color = new Color(0.12f, 0.12f, 0.14f, 1f);
 
             var inLe = inputObj.AddComponent<LayoutElement>();
-            inLe.preferredWidth = 56f;
-            inLe.minWidth = 56f;
+            inLe.preferredWidth = 50f;
+            inLe.minWidth = 50f;
 
             var textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             textObj.transform.SetParent(inputObj.transform, false);
@@ -425,7 +373,7 @@ namespace Tetromiko.CardsHandLayout.Samples
             var inTmp = textObj.GetComponent<TextMeshProUGUI>();
             inTmp.fontSize = 11;
             inTmp.alignment = TextAlignmentOptions.MidlineRight;
-            inTmp.color = accentColor;
+            inTmp.color = Color.white;
 
             inputField = inputObj.AddComponent<TMP_InputField>();
             inputField.textComponent = inTmp;
@@ -433,14 +381,14 @@ namespace Tetromiko.CardsHandLayout.Samples
             inputField.text = Mathf.RoundToInt(defaultVal).ToString();
 
             // Unit Label ("px")
-            var pxLbl = CreateText(header.transform, "Px", "px", 10, FontStyles.Normal, new Color(0.45f, 0.52f, 0.65f, 1f), TextAlignmentOptions.MidlineLeft);
-            pxLbl.gameObject.AddComponent<LayoutElement>().preferredWidth = 18f;
+            var pxLbl = CreateText(header.transform, "Px", "px", 10, FontStyles.Normal, Color.white * 0.7f, TextAlignmentOptions.MidlineLeft);
+            pxLbl.gameObject.AddComponent<LayoutElement>().preferredWidth = 16f;
 
             // Row 2: Standard uGUI Slider
-            var sliderObj = CreateLayoutObject("Slider", row.transform, 16f);
+            var sliderObj = CreateLayoutObject("Slider", row.transform, 14f);
             var sliderLe = sliderObj.AddComponent<LayoutElement>();
-            sliderLe.preferredHeight = 16f;
-            sliderLe.minHeight = 16f;
+            sliderLe.preferredHeight = 14f;
+            sliderLe.minHeight = 14f;
 
             // Background Track
             var bgTrack = new GameObject("Background", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
@@ -449,7 +397,7 @@ namespace Tetromiko.CardsHandLayout.Samples
             bgRt.anchorMin = new Vector2(0f, 0.35f);
             bgRt.anchorMax = new Vector2(1f, 0.65f);
             bgRt.sizeDelta = Vector2.zero;
-            bgTrack.GetComponent<Image>().color = new Color(0.08f, 0.12f, 0.18f, 1f);
+            bgTrack.GetComponent<Image>().color = new Color(0.12f, 0.12f, 0.14f, 1f);
 
             // Fill Area & Fill
             var fillArea = new GameObject("FillArea", typeof(RectTransform));
@@ -463,7 +411,7 @@ namespace Tetromiko.CardsHandLayout.Samples
             fill.transform.SetParent(fillArea.transform, false);
             var fillRt = fill.GetComponent<RectTransform>();
             fillRt.sizeDelta = Vector2.zero;
-            fill.GetComponent<Image>().color = accentColor;
+            fill.GetComponent<Image>().color = new Color(0.35f, 0.60f, 0.90f, 1f);
 
             // Handle Slide Area & Handle
             var handleArea = new GameObject("HandleArea", typeof(RectTransform));
@@ -509,10 +457,6 @@ namespace Tetromiko.CardsHandLayout.Samples
             rt.sizeDelta = size;
             btnObj.GetComponent<Image>().color = bg;
 
-            var outline = btnObj.AddComponent<Outline>();
-            outline.effectColor = new Color(0.18f, 0.24f, 0.36f, 0.8f);
-            outline.effectDistance = new Vector2(1f, -1f);
-
             var txtObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             txtObj.transform.SetParent(btnObj.transform, false);
             var txtRt = txtObj.GetComponent<RectTransform>();
@@ -523,54 +467,16 @@ namespace Tetromiko.CardsHandLayout.Samples
             var tmp = txtObj.GetComponent<TextMeshProUGUI>();
             tmp.text = label;
             tmp.fontSize = fontSize;
-            tmp.fontStyle = FontStyles.Bold;
+            tmp.fontStyle = FontStyles.Normal;
             tmp.color = textCol;
             tmp.alignment = TextAlignmentOptions.Center;
 
             return btnObj.GetComponent<Button>();
         }
 
-        private Button CreateIconButton(Transform parent, string name, Vector2 size, Color bg, Sprite sprite, out Image iconImage)
-        {
-            var btnObj = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
-            btnObj.transform.SetParent(parent, false);
-            var rt = btnObj.GetComponent<RectTransform>();
-            rt.sizeDelta = size;
-            btnObj.GetComponent<Image>().color = bg;
-
-            var outline = btnObj.AddComponent<Outline>();
-            outline.effectColor = new Color(0.18f, 0.24f, 0.36f, 0.8f);
-            outline.effectDistance = new Vector2(1f, -1f);
-
-            var le = btnObj.AddComponent<LayoutElement>();
-            le.preferredWidth = size.x;
-            le.preferredHeight = size.y;
-            le.minWidth = size.x;
-            le.minHeight = size.y;
-
-            // Icon Image Object
-            var iconObj = new GameObject("Icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            iconObj.transform.SetParent(btnObj.transform, false);
-            var iconRt = iconObj.GetComponent<RectTransform>();
-            iconRt.anchorMin = new Vector2(0.2f, 0.2f);
-            iconRt.anchorMax = new Vector2(0.8f, 0.8f);
-            iconRt.sizeDelta = Vector2.zero;
-
-            iconImage = iconObj.GetComponent<Image>();
-            iconImage.raycastTarget = false;
-            iconImage.sprite = sprite;
-            iconImage.color = new Color(0.85f, 0.90f, 0.98f, 1f);
-
-            return btnObj.GetComponent<Button>();
-        }
-
         private void WireEvents()
         {
-            if (minButton != null)
-            {
-                minButton.onClick.AddListener(ToggleMinimize);
-            }
-
+            if (minButton != null) minButton.onClick.AddListener(ToggleMinimize);
             if (addCardBtn != null) addCardBtn.onClick.AddListener(AddCard);
             if (miniAddCardBtn != null) miniAddCardBtn.onClick.AddListener(AddCard);
             if (removeCardBtn != null) removeCardBtn.onClick.AddListener(RemoveCard);
@@ -717,6 +623,10 @@ namespace Tetromiko.CardsHandLayout.Samples
             if (contentRoot != null) contentRoot.SetActive(!isMinimized);
             if (minimizedRoot != null) minimizedRoot.SetActive(isMinimized);
 
+            if (minButtonText != null)
+            {
+                minButtonText.text = isMinimized ? "□" : "_";
+            }
             if (minButtonIconImage != null)
             {
                 minButtonIconImage.sprite = isMinimized ? iconExpand : iconMinimize;
@@ -735,8 +645,15 @@ namespace Tetromiko.CardsHandLayout.Samples
         {
             if (handController == null || layoutDetailsBtnText == null) return;
             bool on = handController.Settings.showLayoutDetails;
-            layoutDetailsBtnText.text = on ? "[ УВІМКНЕНО ]" : "[ ВИМКНЕНО ]";
-            layoutDetailsBtnText.color = on ? new Color(0.30f, 0.90f, 1f, 1f) : new Color(0.50f, 0.55f, 0.65f, 1f);
+            layoutDetailsBtnText.text = on ? "Увімкнено" : "Вимкнено";
+            if (layoutDetailsBtn != null)
+            {
+                var img = layoutDetailsBtn.GetComponent<Image>();
+                if (img != null)
+                {
+                    img.color = on ? new Color(0.24f, 0.45f, 0.65f, 1f) : new Color(0.28f, 0.28f, 0.32f, 1f);
+                }
+            }
         }
 
         private void RefreshCardVisuals()
@@ -796,7 +713,7 @@ namespace Tetromiko.CardsHandLayout.Samples
 
             if (telemetryStateText != null)
             {
-                telemetryStateText.text = metrics.IsOverflowing ? "Стан: Overflow" : "Стан: Normal";
+                telemetryStateText.text = metrics.IsOverflowing ? "Overflow" : "Normal";
                 telemetryStateText.color = metrics.IsOverflowing ? new Color(0.95f, 0.75f, 0.25f, 1f) : new Color(0.25f, 0.90f, 0.55f, 1f);
             }
 
