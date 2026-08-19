@@ -25,11 +25,15 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
             uiDocument = GetComponent<UIDocument>();
             if (handController == null)
             {
+                handController = GetComponent<CardHandUIToolkitController>();
+                if (handController == null)
+                {
 #if UNITY_2023_1_OR_NEWER
-                handController = FindFirstObjectByType<CardHandUIToolkitController>();
+                    handController = FindFirstObjectByType<CardHandUIToolkitController>();
 #else
-                handController = FindObjectOfType<CardHandUIToolkitController>();
+                    handController = FindObjectOfType<CardHandUIToolkitController>();
 #endif
+                }
             }
         }
 

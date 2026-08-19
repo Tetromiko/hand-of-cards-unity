@@ -35,6 +35,10 @@ namespace Tetromiko.CardsHandLayout.Samples
         private void EnsureUIDocumentComponents()
         {
             uiDocument = GetComponent<UIDocument>();
+            if (uiDocument == null)
+            {
+                uiDocument = gameObject.AddComponent<UIDocument>();
+            }
 
             handController = GetComponent<CardHandUIToolkitController>();
             if (handController == null)
