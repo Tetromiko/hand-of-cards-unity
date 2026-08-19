@@ -58,17 +58,22 @@ namespace Tetromiko.CardsHandLayout
 
         public void SetupProceduralHierarchy()
         {
-            // Background Image - Dark Slate #020617
+            EnsureDefaultCardVisuals();
+        }
+
+        public void EnsureDefaultCardVisuals()
+        {
+            // Background Image - Neutral Card
             backgroundImage = GetComponent<Image>();
             if (backgroundImage != null)
             {
-                backgroundImage.color = new Color(0.02f, 0.04f, 0.09f, 0.96f);
+                backgroundImage.color = new Color(0.95f, 0.95f, 0.97f, 1f);
             }
 
             // Outline / Border
             var outline = GetComponent<Outline>();
             if (outline == null) outline = gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(0.12f, 0.16f, 0.25f, 0.8f);
+            outline.effectColor = new Color(0.2f, 0.2f, 0.25f, 0.6f);
             outline.effectDistance = new Vector2(1f, -1f);
 
             // Center Index Text (for Layout Details mode)
