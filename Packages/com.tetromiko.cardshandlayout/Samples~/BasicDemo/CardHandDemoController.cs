@@ -58,10 +58,7 @@ namespace Tetromiko.CardsHandLayout.Samples
 
         private void EnsureEventSystem()
         {
-            if (EventSystem.current == null)
-            {
-                var es = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-            }
+            EventSystemAdapter.EnsureAdaptiveEventSystem();
         }
 
         public void BuildCompleteDemoUI()

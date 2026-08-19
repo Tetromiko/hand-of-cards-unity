@@ -25,11 +25,11 @@ namespace Tetromiko.CardsHandLayout.Editor
                 Undo.RegisterCreatedObjectUndo(canvasObj, "Create Canvas");
             }
 
-            // Ensure EventSystem exists
-            if (Object.FindObjectOfType<EventSystem>() == null)
+            // Ensure Adaptive EventSystem exists (New Input System / Legacy compliant)
+            var es = EventSystemAdapter.EnsureAdaptiveEventSystem();
+            if (es != null)
             {
-                var esObj = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-                Undo.RegisterCreatedObjectUndo(esObj, "Create EventSystem");
+                Undo.RegisterCreatedObjectUndo(es.gameObject, "Create EventSystem");
             }
 
             // Create Card Hand Object
