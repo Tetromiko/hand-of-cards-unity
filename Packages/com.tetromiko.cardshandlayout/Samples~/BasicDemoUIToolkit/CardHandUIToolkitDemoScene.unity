@@ -208,8 +208,6 @@ GameObject:
   m_Component:
   - component: {fileID: 200002}
   - component: {fileID: 200003}
-  - component: {fileID: 200004}
-  - component: {fileID: 200005}
   m_Layer: 5
   m_Name: CardHand_UIToolkit
   m_TagString: Untagged
@@ -241,50 +239,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 200001}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1980459831, guid: e7433315611c33f47a696fb9747206e4, type: 3}
+  m_Script: {fileID: 11500000, guid: c3a89c2049e248b99c158d6418fa7e13, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_PanelSettings: {fileID: 0}
-  m_SourceAsset: {fileID: 0}
-  m_VisualTreeAsset: {fileID: 0}
---- !u!114 &200004
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 200001}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b4a89c2049e248b99c158d6418fa7e04, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  settings:
-    cardWidth: 112
-    cardHeight: 160
-    handWidth: 680
-    cardDistance: 56
-    minCardDistance: 24
-    hoverDistance: 112
-    hoverLift: 28
-    hoverScale: 1.05
-    dragScale: 1.1
-    smoothTime: 0.12
-    maxSpeed: 2500
-    showLayoutDetails: 0
-    drawGizmos: 1
-  populateDefaultCardsOnStart: 1
-  initialCardCount: 5
---- !u!114 &200005
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 200001}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b5a89c2049e248b99c158d6418fa7e05, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  handController: {fileID: 200004}

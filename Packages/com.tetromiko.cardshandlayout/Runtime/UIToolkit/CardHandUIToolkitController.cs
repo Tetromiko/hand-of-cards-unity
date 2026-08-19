@@ -10,7 +10,6 @@ namespace Tetromiko.CardsHandLayout.UIToolkit
     /// UI Toolkit implementation of the Cards Hand Layout Controller.
     /// Manages the CardSlotElements and CardElements within a UIDocument.
     /// </summary>
-    [ExecuteAlways]
     [RequireComponent(typeof(UIDocument))]
     public class CardHandUIToolkitController : MonoBehaviour
     {
