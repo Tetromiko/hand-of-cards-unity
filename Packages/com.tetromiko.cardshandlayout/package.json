@@ -24,9 +24,14 @@
   },
   "samples": [
     {
-      "displayName": "Basic Card Hand Demo",
-      "description": "Interactive example demonstrating cards addition, removal, hover compensation, and drag-and-drop reordering.",
+      "displayName": "Basic Card Hand Demo (uGUI)",
+      "description": "Interactive uGUI example demonstrating cards addition, removal, hover compensation, and drag-and-drop reordering.",
       "path": "Samples~/BasicDemo"
+    },
+    {
+      "displayName": "UI Toolkit Card Hand Demo",
+      "description": "Interactive UI Toolkit (UIDocument) example with native Flexbox layout, standard controls, and pointer capture drag-and-drop.",
+      "path": "Samples~/BasicDemoUIToolkit"
     }
   ]
 }
